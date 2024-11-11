@@ -25,5 +25,16 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
+    public User checkUser(String username, String password){
+        User user = getUserByUsername(username);
+        System.out.println("User ucitan");
+        if(user.getPassword().equals(password)){
+            System.out.println("Tacna sifra");
+            return user;
+        }
+        System.out.println("Pogresna sifra");
+        return null;
+    }
+
     // Dodajte ostale metode po potrebi
 }
