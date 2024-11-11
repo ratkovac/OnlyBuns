@@ -8,7 +8,7 @@ import com.group27.OnlyBuns.model.Post;
 import java.util.List;
 
 @JsonSerialize
-@JsonInclude(JsonInclude.Include.NON_NULL)  // Ensure null values are excluded
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PostDTO {
     private Long id;
     private Long userId;

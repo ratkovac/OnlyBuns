@@ -43,40 +43,44 @@ public class PostController {
     // Dohvat svih objava
     @GetMapping
     public List<PostDTO> getAllPosts() {
-        try {
-            List<PostDTO> postDTOs = new ArrayList<>();
-            List<Post> posts = postService.getAllPosts();
+        List<PostDTO> postDTOs = new ArrayList<>();
+        List<Post> posts = postService.getAllPosts();
 
-            for (Post post : posts) {
-                long likeCount = postService.getLikeCount(post.getId());
-                List<Comment> comments = postService.getComments(post.getId());
+        for (Post post : posts) {
+            long likeCount = postService.getLikeCount(post.getId());
+            List<Comment> comments = postService.getComments(post.getId());
 
-                PostDTO postDTO = new PostDTO(post, likeCount, comments);
-                postDTOs.add(postDTO);
-            }
-            return postDTOs;
-        } catch (Exception e) {
-            // Log the error for debugging
-            System.err.println("Error fetching posts: " + e.getMessage());
-            e.printStackTrace();
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch posts", e);
+            PostDTO postDTO = new PostDTO(post, likeCount, comments);
+            postDTOs.add(postDTO);
         }
+        return postDTOs;
     }
 
     @GetMapping("/{postId}")
-    public PostDTO getPostById(@PathVariable Long postId) {
-        try {
-            Post post = postService.getPostById(postId);  // Fetch the post by ID
-            long likeCount = postService.getLikeCount(postId);  // Get like count for the post
-            List<Comment> comments = postService.getComments(postId);  // Get comments for the post
+    public Post getPostById(@PathVariable Long postId) {
 
-            // Map the Post to PostDTO
-            return new PostDTO(post, likeCount, comments);
-        } catch (Exception e) {
-            // Log the error for debugging
-            System.err.println("Error fetching post with ID " + postId + ": " + e.getMessage());
-            e.printStackTrace();
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found", e);
-        }
+        return postService.getPostById(postId);
+    }
+
+    @PutMapping("/{postId}")
+    public Post updatePost(
+            @PathVariable Long postId,
+            @RequestBody Post updatedPost,
+            @RequestParam Long userId) {
+
+        // Pozivamo servis za ažuriranje objave
+        return postService.updatePost(postId, userId, updatedPost.getDescription(), updatedPost.getImageUrl());
+    }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> deletePost(
+            @PathVariable Long postId,
+            @RequestParam Long userId) {
+
+        // Pozivamo servis za brisanje objave
+        postService.deletePost(postId, userId);
+
+        // Vraćamo HTTP 204 status (No Content)
+        return ResponseEntity.noContent().build();
     }
 }

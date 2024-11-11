@@ -9,9 +9,9 @@ import com.group27.OnlyBuns.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -55,19 +55,51 @@ public class PostService {
         return commentRepository.findByPostId(postId);
     }
 
+    @Cacheable(value = "posts", key = "#postId")
     public Post getPostById(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found")); // Throws an exception if post doesn't exist
     }
 
-//    @Cacheable("imageCache")
-//    public String getImageUrl(Long postId) {
-//        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
-//        return post.getImageUrl();
-//    }
-
-    // Dohvat svih objava
+    @Cacheable(value = "allPosts")
     public List<Post> getAllPosts() {
         return postRepository.findAll();
+    }
+
+    public Post updatePost(Long postId, Long userId, String description, String imageUrl) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+        // Provera da li je korisnik koji pokušava da ažurira objavu isti kao korisnik koji je postavio objavu
+        if (!post.getUserId().equals(userId)) {
+            throw new SecurityException("You are not authorized to update this post");
+        }
+
+        // Ažuriranje samo description i imageUrl
+        post.setDescription(description);
+        post.setImageUrl(imageUrl);
+
+        // Čuvanje ažurirane objave
+        return postRepository.save(post);
+    }
+
+    @Transactional
+    public void deletePost(Long postId, Long userId) {
+        // Dohvati post koji želimo da obrišemo
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+        // Provera da li je korisnik koji pokušava da obriše objavu isti kao korisnik koji je postavio objavu
+        if (!post.getUserId().equals(userId)) {
+            throw new SecurityException("You are not authorized to delete this post");
+        }
+
+        // Prvo obriši sve komentare koji su vezani za ovu objavu
+        commentRepository.deleteByPostId(postId);
+
+        // Zatim obriši sve lajkove koji su vezani za ovu objavu
+        likeRepository.deleteByPostId(postId);
+
+        // Na kraju obriši samu objavu
+        postRepository.delete(post);
     }
 }
