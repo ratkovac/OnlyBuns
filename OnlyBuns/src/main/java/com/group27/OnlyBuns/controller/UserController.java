@@ -28,4 +28,9 @@ public class UserController {
     public User getUserByUsername(@PathVariable String username) {
         return userService.getUserByUsername(username);
     }
+
+    @PostMapping("/login")
+    public User checkUser(@RequestBody User user) {
+        return userService.checkUser(user.getUsername(), user.getPassword());
+    }
 }
