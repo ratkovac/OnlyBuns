@@ -7,9 +7,11 @@ import com.group27.OnlyBuns.repository.CommentRepository;
 import com.group27.OnlyBuns.repository.LikeRepository;
 import com.group27.OnlyBuns.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -44,6 +46,25 @@ public class PostService {
         like.setUserId(userId);
         return likeRepository.save(like);
     }
+
+    public long getLikeCount(Long postId) {
+        return likeRepository.countByPostId(postId);
+    }
+
+    public List<Comment> getComments(Long postId) {
+        return commentRepository.findByPostId(postId);
+    }
+
+    public Post getPostById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found")); // Throws an exception if post doesn't exist
+    }
+
+//    @Cacheable("imageCache")
+//    public String getImageUrl(Long postId) {
+//        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
+//        return post.getImageUrl();
+//    }
 
     // Dohvat svih objava
     public List<Post> getAllPosts() {
