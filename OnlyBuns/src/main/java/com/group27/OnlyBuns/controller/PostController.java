@@ -4,6 +4,7 @@ import com.group27.OnlyBuns.model.Comment;
 import com.group27.OnlyBuns.model.Like;
 import com.group27.OnlyBuns.model.Post;
 import com.group27.OnlyBuns.service.PostService;
+import com.group27.OnlyBuns.service.LikeService;
 import dto.PostDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,9 @@ public class PostController {
     @Autowired
     private PostService postService;
 
+    @Autowired
+    private LikeService likeService;
+
     // Kreiranje nove objave
     @PostMapping
     public Post createPost(@RequestBody Post post) {
@@ -38,6 +42,17 @@ public class PostController {
     @PostMapping("/{postId}/likes")
     public Like addLike(@PathVariable Long postId, @RequestParam Long userId) {
         return postService.addLike(postId, userId);
+    }
+
+    @GetMapping("/{postId}/likes/check")
+    public ResponseEntity<Boolean> checkIfUserLiked(
+            @PathVariable Long postId,
+            @RequestParam Long userId) {
+
+        boolean isLiked = likeService.isPostLikedByUser(postId, userId);
+
+        // Vraćamo true ili false u zavisnosti od toga da li je korisnik lajkovao
+        return new ResponseEntity<>(isLiked, HttpStatus.OK);
     }
 
     // Dohvat svih objava
