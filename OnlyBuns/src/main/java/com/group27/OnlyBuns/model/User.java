@@ -1,6 +1,5 @@
 package com.group27.OnlyBuns.model;
 
-
 import jakarta.persistence.*;
 
 @Entity
@@ -23,6 +22,13 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    @Column(nullable = false)
+    private String firstName;  // Dodano ime
+
+    @Column(nullable = false)
+    private String lastName;   // Dodano prezime
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -61,5 +67,21 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 }
