@@ -87,7 +87,7 @@ public class UserController {
         User regUser = userService.registerUser(user);
 
         VerificationToken vt = userService.saveToken(regUser);
-        emailSenderService.sendEmail("nik.letvencuk@gmail.com", "Verifikacija OnlyBuns profila","Vas kod za verifikaciju je "+ vt.getCode());
+        emailSenderService.sendEmail(user.getEmail(), "Verifikacija OnlyBuns profila","Vas kod za verifikaciju je "+ vt.getCode());
         return regUser;
     }
 
