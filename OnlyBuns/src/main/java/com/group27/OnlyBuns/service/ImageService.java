@@ -18,8 +18,9 @@ public class ImageService {
     @Value("${image.compressed-dir}")
     private String compressedDir;
 
-    @Scheduled(cron = "0 13 15 * * ?")
+    @Scheduled(cron = "0 16 22 * * ?")
     public void compressOldImages() {
+        System.out.println("Hello, World!");
         File dir = new File(imageDir);
         File[] files = dir.listFiles();
         if (files != null) {
@@ -27,7 +28,7 @@ public class ImageService {
                 long diffInMillies = new Date().getTime() - file.lastModified();
                 long diffInDays = diffInMillies / (1000 * 60 * 60 * 24);
 
-                if (diffInDays < 30) {
+                if (diffInDays > 30) {
                     try {
                         File compressedDirectory = new File(compressedDir);
                         if (!compressedDirectory.exists()) {
