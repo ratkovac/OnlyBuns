@@ -9,8 +9,10 @@ import com.group27.OnlyBuns.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.List;
@@ -70,29 +72,31 @@ public class UserService {
 //        return userRepository.findAll(PageRequest.of(pageNumber, pageSize));
 //    }
 
-    public List<User> searchUsers(String firstName, String lastName, String email, Long minPosts, Long maxPosts) {
-        return userRepository.findUsersByCriteria(firstName, lastName, email, minPosts, maxPosts);
+    public Page<User> searchUsers(String firstName, String lastName, String email, Long minPosts, Long maxPosts, Pageable pageable) {
+        return userRepository.findUsersByCriteria(firstName, lastName, email, minPosts, maxPosts, pageable);
     }
 
-    public List<User> findUsersSortedByFollowingCount(String sortDirection) {
+
+    public Page<User> findUsersSortedByFollowingCount(String sortDirection, Pageable pageable) {
         if (!sortDirection.equalsIgnoreCase("ASC") && !sortDirection.equalsIgnoreCase("DESC")) {
             throw new IllegalArgumentException("Invalid sort direction. Use 'ASC' or 'DESC'.");
         }
-        return userRepository.findUsersSortedByFollowingCount(sortDirection);
+        return userRepository.findUsersSortedByFollowingCount(sortDirection, pageable);
     }
 
-    public List<User> findUsersSortedByEmail(String sortDirection) {
+
+    public Page<User> findUsersSortedByEmail(String sortDirection, Pageable pageable) {
         if (!sortDirection.equalsIgnoreCase("ASC") && !sortDirection.equalsIgnoreCase("DESC")) {
             throw new IllegalArgumentException("Invalid sort direction. Use 'ASC' or 'DESC'.");
         }
-        return userRepository.findUsersSortedByEmail(sortDirection);
+        return userRepository.findUsersSortedByEmail(sortDirection, pageable);
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll().stream()
-                .filter(user -> !user.getRole().equals("admin")) // Filtrira korisnike čija je uloga 'admin'
-                .collect(Collectors.toList());
+
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAllNonAdminUsers(pageable);
     }
+
 
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email);
