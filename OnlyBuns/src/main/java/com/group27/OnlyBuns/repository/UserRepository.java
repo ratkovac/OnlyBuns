@@ -54,4 +54,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     User getUsersById(long userId);
     User findById(long id);
+
+    @Query("SELECT u FROM User u WHERE u.isActive = false AND u.role = 'user'")
+    List<User> findInactiveUsers();
 }

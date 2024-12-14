@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -159,5 +160,14 @@ public class UserService {
 
     public Optional<User> getUserById(long id) {
         return Optional.ofNullable(userRepository.findById(id));
+    }
+
+    @Scheduled(cron = "0 0 0 L * ?") // Pokreće se u ponoć poslednjeg dana u mesecu
+    public void deleteInactiveUsers() {
+        List<User> inactiveUsers = userRepository.findInactiveUsers();
+        inactiveUsers.forEach(user -> {
+            System.out.println("Deleting inactive user: " + user.getUsername());
+            userRepository.delete(user);
+        });
     }
 }
