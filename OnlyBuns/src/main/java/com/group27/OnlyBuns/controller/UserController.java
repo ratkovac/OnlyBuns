@@ -6,6 +6,10 @@ import com.group27.OnlyBuns.service.EmailSenderService;
 import com.group27.OnlyBuns.service.UserService;
 import com.group27.OnlyBuns.utils.SimpleRateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -48,10 +52,10 @@ public class UserController {
         return userService.getUserById(id);
     }
 
-    @PostMapping("/loginn")
+    /*@PostMapping("/login")
     public User checkUser(@RequestBody User user) {
         return userService.checkUser(user.getUsername(), user.getPassword());
-    }
+    }*/
 
 
     @PostMapping("/login")
@@ -84,29 +88,47 @@ public class UserController {
         return userService.countPosts(userId);
     }
 
+    // Pretraga korisnika sa podrškom za paginaciju
     @GetMapping("/search")
-    public List<User> searchUsers(
+    public Page<User> searchUsers(
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Long minPosts,
-            @RequestParam(required = false) Long maxPosts) {
-        return userService.searchUsers(firstName, lastName, email, minPosts, maxPosts);
+            @RequestParam(required = false) Long maxPosts,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.searchUsers(firstName, lastName, email, minPosts, maxPosts, pageable);
     }
 
+    // Sortiranje korisnika po broju praćenja sa podrškom za paginaciju
     @GetMapping("/sort/following")
-    public List<User> sortUsersByFollowingCount(@RequestParam String sortDirection) {
-        return userService.findUsersSortedByFollowingCount(sortDirection);
+    public Page<User> sortUsersByFollowingCount(
+            @RequestParam String sortDirection,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.findUsersSortedByFollowingCount(sortDirection, pageable);
     }
 
+    // Sortiranje korisnika po emailu sa podrškom za paginaciju
     @GetMapping("/sort/email")
-    public List<User> sortUsersByEmail(@RequestParam String sortDirection) {
-        return userService.findUsersSortedByEmail(sortDirection);
+    public Page<User> sortUsersByEmail(
+            @RequestParam String sortDirection,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.findUsersSortedByEmail(sortDirection, pageable);
     }
 
+    // Dobijanje svih korisnika sa podrškom za paginaciju
     @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public Page<User> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.getAllUsers(pageable);
     }
 
     @PostMapping("/register")
@@ -128,4 +150,11 @@ public class UserController {
     public User verifyUser(@PathVariable long userId) {
         return userService.verify(userId);
     }
+
+    @DeleteMapping("/inactive")
+    public ResponseEntity<String> deleteInactiveUsers() {
+        userService.deleteInactiveUsers();
+        return ResponseEntity.ok("Inactive users deleted successfully");
+    }
 }
+
