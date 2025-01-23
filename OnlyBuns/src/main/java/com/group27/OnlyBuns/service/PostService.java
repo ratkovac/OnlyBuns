@@ -12,7 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
 
 @Service
 public class PostService {
@@ -44,9 +48,9 @@ public class PostService {
         Like like = new Like();
         like.setPostId(postId);
         like.setUserId(userId);
+        like.setCreatedAt(LocalDateTime.now());
         return likeRepository.save(like);
     }
-
     public long getLikeCount(Long postId) {
         return likeRepository.countByPostId(postId);
     }
@@ -102,4 +106,53 @@ public class PostService {
         // Na kraju obriši samu objavu
         postRepository.delete(post);
     }
+
+    public List<Post> getPostsByUserId(Long userId) {
+        return postRepository.findByUserId(userId);
+    }
+
+    public List<Post> getPostsFor1M() {
+        List<Post> posts = postRepository.findAll();
+        List<Post> postsFor1M = new ArrayList<>();
+        for (Post post : posts) {
+            if(isPostCreatedWithin(post, "1m")){
+                postsFor1M.add(post);
+            }
+        }
+        return postsFor1M;
+    }
+
+    public boolean isPostCreatedWithin(Post post, String duration) {
+        if (duration == null || duration.length() < 2) {
+            throw new IllegalArgumentException("Invalid duration format. Example: '1d', '1m', '1y'.");
+        }
+
+        int amount;
+        try {
+            amount = Integer.parseInt(duration.substring(0, duration.length() - 1));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid numeric value in duration.");
+        }
+        char unit = duration.charAt(duration.length() - 1);
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime threshold;
+
+        switch (unit) {
+            case 'd': // Dani
+                threshold = now.minus(amount, ChronoUnit.DAYS);
+                break;
+            case 'm': // Meseci
+                threshold = now.minus(amount, ChronoUnit.MONTHS);
+                break;
+            case 'y': // Godine
+                threshold = now.minus(amount, ChronoUnit.YEARS);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid time unit. Use 'd' for days, 'm' for months, 'y' for years.");
+        }
+
+        return post.getCreatedAt().isAfter(threshold);
+    }
+
 }

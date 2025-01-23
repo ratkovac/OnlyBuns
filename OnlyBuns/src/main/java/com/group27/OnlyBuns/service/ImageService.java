@@ -18,7 +18,7 @@ public class ImageService {
     @Value("${image.compressed-dir}")
     private String compressedDir;
 
-    @Scheduled(cron = "0 16 22 * * ?")
+    @Scheduled(cron = "0 8 08 * * ?")
     public void compressOldImages() {
         System.out.println("Hello, World!");
         File dir = new File(imageDir);
