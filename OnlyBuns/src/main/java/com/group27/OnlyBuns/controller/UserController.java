@@ -4,8 +4,11 @@ import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.model.VerificationToken;
 import com.group27.OnlyBuns.service.EmailSenderService;
 import com.group27.OnlyBuns.service.UserService;
+import com.group27.OnlyBuns.utils.SimpleRateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -19,10 +22,13 @@ public class UserController {
 
     private final EmailSenderService emailSenderService;
 
+    private SimpleRateLimiter rateLimiter;
+
     @Autowired
     public UserController(UserService userService, EmailSenderService emailSenderService) {
         this.userService = userService;
         this.emailSenderService = emailSenderService;
+        this.rateLimiter = new SimpleRateLimiter(5, 60000);
     }
 
     // Endpoint za kreiranje novog korisnika
@@ -42,14 +48,35 @@ public class UserController {
         return userService.getUserById(id);
     }
 
-    @PostMapping("/login")
+    @PostMapping("/loginn")
     public User checkUser(@RequestBody User user) {
         return userService.checkUser(user.getUsername(), user.getPassword());
+    }
+
+
+    @PostMapping("/login")
+    public String logIn(@RequestBody User user, HttpServletRequest request) {
+        String clientIp = request.getRemoteAddr(); // Dobijanje IP adrese
+        if(rateLimiter.allowRequest(clientIp)) {
+            return userService.logIn(user.getUsername(), user.getPassword());
+        }else{
+            return "Previse puta je pokusana sifra";
+        }
     }
 
     @GetMapping("/{userId}/following/count")
     public long getCountOfUsersFollowed(@PathVariable Long userId) {
         return userService.countUsersFollowedBy(userId);
+    }
+
+    @GetMapping("/followers/{userId}")
+    public List<User> getUsersFollowed(@PathVariable Long userId) {
+        return userService.usersFollowersBy(userId);
+    }
+
+    @GetMapping("/following/{userId}")
+    public List<User> getUsersFollowing(@PathVariable Long userId) {
+        return userService.usersFollowedBy(userId);
     }
 
     @GetMapping("/{userId}/posts/count")
@@ -86,13 +113,19 @@ public class UserController {
     public User registerUser(@RequestBody User user) {
         User regUser = userService.registerUser(user);
 
-        VerificationToken vt = userService.saveToken(regUser);
-        emailSenderService.sendEmail(user.getEmail(), "Verifikacija OnlyBuns profila","Vas kod za verifikaciju je "+ vt.getCode());
+        String verificationLink = "http://localhost:4200/verificationMail/" + regUser.getId();
+
+        emailSenderService.sendEmail(
+                user.getEmail(),
+                "Verifikacija OnlyBuns profila",
+                "Kliknite na sledeći link da biste verifikovali vaš nalog: " + verificationLink
+        );
+
         return regUser;
     }
 
-    @PostMapping("/verify")
-    public VerificationToken verifyUser(@RequestBody VerificationToken verificationToken) {
-        return userService.verifyToken(verificationToken);
+    @PostMapping("/verify/{userId}")
+    public User verifyUser(@PathVariable long userId) {
+        return userService.verify(userId);
     }
 }
