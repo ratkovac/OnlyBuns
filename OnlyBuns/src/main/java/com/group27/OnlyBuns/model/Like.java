@@ -2,6 +2,8 @@ package com.group27.OnlyBuns.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "Likes")
 public class Like {
@@ -15,6 +17,9 @@ public class Like {
 
     @Column(nullable = false)
     private Long postId; // ID posta koji je lajkovan
+
+    @Column(nullable = false, unique = false)
+    private LocalDateTime createdAt; // vreme lajkovanja
 
     public Long getId() {
         return id;
@@ -39,4 +44,8 @@ public class Like {
     public void setPostId(Long postId) {
         this.postId = postId;
     }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

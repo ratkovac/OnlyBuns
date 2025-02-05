@@ -1,6 +1,7 @@
 package com.group27.OnlyBuns.service;
 
 import com.group27.OnlyBuns.model.User;
+import com.group27.OnlyBuns.model.UserFollower;
 import com.group27.OnlyBuns.repository.PostRepository;
 import com.group27.OnlyBuns.repository.UserFollowerRepository;
 import com.group27.OnlyBuns.repository.VerificationTokenRepository;
@@ -9,12 +10,22 @@ import com.group27.OnlyBuns.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+
+import java.util.*;
+
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.List;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -39,10 +50,6 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User updateUser(User user) {
-        return userRepository.save(user);
-    }
-
     // Pronalazak korisnika po korisničkom imenu
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -50,13 +57,18 @@ public class UserService {
 
     public User checkUser(String username, String password) {
         User user = getUserByUsername(username);
-        if (user.isActive() && user.getPassword().equals(password)) {
-            user.setLastLoginTime(LocalDateTime.now());
-            return userRepository.save(user);
+        System.out.println("User ucitan");
+        if (user.isActive()) {
+            if (user.getPassword().equals(password)) {
+                System.out.println("Tacna sifra");
+                return user;
+            }
+            System.out.println("Pogresna sifra");
+        }else{
+            System.out.println("Korisnik nije verifikovan");
         }
         return null;
     }
-
 
     public long countUsersFollowedBy(Long userId) {
         return userFollowerRepository.countByFollowerId(userId);
@@ -70,41 +82,53 @@ public class UserService {
 //        return userRepository.findAll(PageRequest.of(pageNumber, pageSize));
 //    }
 
-    public List<User> searchUsers(String firstName, String lastName, String email, Long minPosts, Long maxPosts) {
-        return userRepository.findUsersByCriteria(firstName, lastName, email, minPosts, maxPosts);
+    public Page<User> searchUsers(String firstName, String lastName, String email, Long minPosts, Long maxPosts, Pageable pageable) {
+        return userRepository.findUsersByCriteria(firstName, lastName, email, minPosts, maxPosts, pageable);
     }
 
-    public List<User> findUsersSortedByFollowingCount(String sortDirection) {
+
+    public Page<User> findUsersSortedByFollowingCount(String sortDirection, Pageable pageable) {
         if (!sortDirection.equalsIgnoreCase("ASC") && !sortDirection.equalsIgnoreCase("DESC")) {
             throw new IllegalArgumentException("Invalid sort direction. Use 'ASC' or 'DESC'.");
         }
-        return userRepository.findUsersSortedByFollowingCount(sortDirection);
+        return userRepository.findUsersSortedByFollowingCount(sortDirection, pageable);
     }
 
-    public List<User> findUsersSortedByEmail(String sortDirection) {
+
+    public Page<User> findUsersSortedByEmail(String sortDirection, Pageable pageable) {
         if (!sortDirection.equalsIgnoreCase("ASC") && !sortDirection.equalsIgnoreCase("DESC")) {
             throw new IllegalArgumentException("Invalid sort direction. Use 'ASC' or 'DESC'.");
         }
-        return userRepository.findUsersSortedByEmail(sortDirection);
+        return userRepository.findUsersSortedByEmail(sortDirection, pageable);
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll().stream()
-                .filter(user -> !user.getRole().equals("admin")) // Filtrira korisnike čija je uloga 'admin'
-                .collect(Collectors.toList());
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAllNonAdminUsers(pageable);
+    }
+
+    public User updateUser(User user) {
+        return userRepository.save(user);
     }
 
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
+    @Transactional
     public User registerUser(User user) {
+        // Simulacija sporog pristupa za testiranje konflikata
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         if (getUserByUsername(user.getUsername()) != null) {
-            throw new IllegalArgumentException("Korisničko ime već postoji");
+            throw new IllegalArgumentException("Korisnicko ime vec postoji");
         }
 
         if (getUserByEmail(user.getEmail()) != null) {
-            throw new IllegalArgumentException("Email već postoji");
+            throw new IllegalArgumentException("Email vec postoji");
         }
 
         Long maxId = userRepository.findMaxId();
@@ -119,48 +143,79 @@ public class UserService {
 
         user.setActive(false);
         user.setRole("user");
-        user.setLastLoginTime(LocalDateTime.now());
         return createUser(user);
-    }
-
-    public VerificationToken saveToken(User user){
-        VerificationToken verificationToken = new VerificationToken(user.getId(), generateRandomString());
-        return verificationTokenRepository.save(verificationToken);
-    }
-
-    public static String generateRandomString() {
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        StringBuilder randomString = new StringBuilder();
-        Random random = new Random();
-
-        for (int i = 0; i < 4; i++) {
-            int index = random.nextInt(characters.length());
-            randomString.append(characters.charAt(index));
-        }
-
-        return randomString.toString();
-    }
-
-    public VerificationToken verifyToken(VerificationToken verificationToken) {
-        VerificationToken token = verificationTokenRepository.findByUserId(verificationToken.getUserId());
-        System.out.println(token.getId());
-        if(verificationToken.getCode().equals(token.getCode())){
-            User user = userRepository.getUsersById(verificationToken.getUserId());
-            user.setActive(true);
-            userRepository.save(user);
-            verificationTokenRepository.delete(token);
-            return verificationToken;
-        }
-        return null;
     }
 
     public Optional<User> getUserById(long id) {
         return Optional.ofNullable(userRepository.findById(id));
     }
 
-    public List<User> findInactiveUsers(int days) {
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(days);
-        return userRepository.findInactiveUsersSince(cutoffDate);
+    public String logIn(String username, String password) {
+        User user = getUserByUsername(username);
+        System.out.println("User ucitan");
+        if (user.isActive()) {
+            if (user.getPassword().equals(password)) {
+                System.out.println("Tacna sifra");
+                return generateJWT(username, user.getId(), user.getRole());
+            }
+            System.out.println("Pogresna sifra");
+        }else{
+            System.out.println("Korisnik nije verifikovan");
+        }
+        return null;
     }
 
+    private static final String SECRET_KEY = "9lA8q1tUjKTx1mX2LdKvQ7fV2pNc5wQ6R2p3MmN8P1A=";
+    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 2; // 2 sata
+
+    public static String generateJWT(String username, Long userId, String role) {
+        return Jwts.builder()
+                .setSubject(username) // sub: korisničko ime
+                .claim("id", userId)   // Dodaj ID korisnika kao claim
+                .claim("role", role)   // Dodaj ulogu korisnika kao claim
+                .setIssuedAt(new Date()) // Datum izdavanja
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) // Rok trajanja
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY) // Potpisivanje sa tajnim ključem
+                .compact();
+    }
+
+    public User verify(long userId) {
+        User user = userRepository.getUsersById(userId);
+        user.setActive(true);
+        userRepository.save(user);
+        return user;
+    }
+
+    public List<User> usersFollowersBy(Long userId) {
+        List<User> followers = new ArrayList<User>();
+        List<UserFollower> userFollowers = userFollowerRepository.getAllByFolloweeId(userId);
+
+        for(UserFollower follower : userFollowers){
+            User user = follower.getFollower();
+            followers.add(user);
+        }
+
+        return followers;
+    }
+
+    public List<User> usersFollowedBy(Long userId) {
+        List<User> followed = new ArrayList<>();
+        List<UserFollower> userFollowers = userFollowerRepository.getAllByFollowerId(userId);
+
+        for(UserFollower follower : userFollowers){
+            User user = follower.getFollowee();
+            followed.add(user);
+        }
+
+        return followed;
+    }
+
+    @Scheduled(cron = "0 0 0 L * ?") // Pokreće se u ponoć poslednjeg dana u mesecu
+    public void deleteInactiveUsers() {
+        List<User> inactiveUsers = userRepository.findInactiveUsers();
+        inactiveUsers.forEach(user -> {
+            System.out.println("Deleting inactive user: " + user.getUsername());
+            userRepository.delete(user);
+        });
+    }
 }

@@ -4,10 +4,18 @@ import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.model.VerificationToken;
 import com.group27.OnlyBuns.service.EmailSenderService;
 import com.group27.OnlyBuns.service.UserService;
+import com.group27.OnlyBuns.utils.SimpleRateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,10 +28,13 @@ public class UserController {
 
     private final EmailSenderService emailSenderService;
 
+    private SimpleRateLimiter rateLimiter;
+
     @Autowired
     public UserController(UserService userService, EmailSenderService emailSenderService) {
         this.userService = userService;
         this.emailSenderService = emailSenderService;
+        this.rateLimiter = new SimpleRateLimiter(5, 60000);
     }
 
     // Endpoint za kreiranje novog korisnika
@@ -43,14 +54,22 @@ public class UserController {
         return userService.getUserById(id);
     }
 
-    @PostMapping("/login")
+    /*@PostMapping("/login")
     public User checkUser(@RequestBody User user) {
-        User validUser = userService.checkUser(user.getUsername(), user.getPassword());
-        if (validUser != null) {
-            validUser.setLastLoginTime(LocalDateTime.now());
-            userService.updateUser(validUser);
+        return userService.checkUser(user.getUsername(), user.getPassword());
+    }*/
+
+
+    @PostMapping("/login")
+    public String logIn(@RequestBody User user, HttpServletRequest request) {
+        String clientIp = request.getRemoteAddr(); // Dobijanje IP adrese
+        if(rateLimiter.allowRequest(clientIp)) {
+            user.setLastLoginTime(LocalDateTime.now());
+            userService.updateUser(user);
+            return userService.logIn(user.getUsername(), user.getPassword());
+        }else{
+            return "Previse puta je pokusana sifra";
         }
-        return validUser;
     }
 
     @GetMapping("/{userId}/following/count")
@@ -58,47 +77,88 @@ public class UserController {
         return userService.countUsersFollowedBy(userId);
     }
 
+    @GetMapping("/followers/{userId}")
+    public List<User> getUsersFollowed(@PathVariable Long userId) {
+        return userService.usersFollowersBy(userId);
+    }
+
+    @GetMapping("/following/{userId}")
+    public List<User> getUsersFollowing(@PathVariable Long userId) {
+        return userService.usersFollowedBy(userId);
+    }
+
     @GetMapping("/{userId}/posts/count")
     public long getPostsCount(@PathVariable Long userId) {
         return userService.countPosts(userId);
     }
 
+    // Pretraga korisnika sa podrškom za paginaciju
     @GetMapping("/search")
-    public List<User> searchUsers(
+    public Page<User> searchUsers(
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Long minPosts,
-            @RequestParam(required = false) Long maxPosts) {
-        return userService.searchUsers(firstName, lastName, email, minPosts, maxPosts);
+            @RequestParam(required = false) Long maxPosts,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.searchUsers(firstName, lastName, email, minPosts, maxPosts, pageable);
     }
 
+    // Sortiranje korisnika po broju praćenja sa podrškom za paginaciju
     @GetMapping("/sort/following")
-    public List<User> sortUsersByFollowingCount(@RequestParam String sortDirection) {
-        return userService.findUsersSortedByFollowingCount(sortDirection);
+    public Page<User> sortUsersByFollowingCount(
+            @RequestParam String sortDirection,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.findUsersSortedByFollowingCount(sortDirection, pageable);
     }
 
+    // Sortiranje korisnika po emailu sa podrškom za paginaciju
     @GetMapping("/sort/email")
-    public List<User> sortUsersByEmail(@RequestParam String sortDirection) {
-        return userService.findUsersSortedByEmail(sortDirection);
+    public Page<User> sortUsersByEmail(
+            @RequestParam String sortDirection,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.findUsersSortedByEmail(sortDirection, pageable);
     }
 
+    // Dobijanje svih korisnika sa podrškom za paginaciju
     @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public Page<User> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userService.getAllUsers(pageable);
     }
 
     @PostMapping("/register")
     public User registerUser(@RequestBody User user) {
         User regUser = userService.registerUser(user);
 
-        VerificationToken vt = userService.saveToken(regUser);
-        emailSenderService.sendEmail("nik.letvencuk@gmail.com", "Verifikacija OnlyBuns profila","Vas kod za verifikaciju je "+ vt.getCode());
+        String verificationLink = "http://localhost:4200/verificationMail/" + regUser.getId();
+
+        emailSenderService.sendEmail(
+                user.getEmail(),
+                "Verifikacija OnlyBuns profila",
+                "Kliknite na sledeći link da biste verifikovali vaš nalog: " + verificationLink
+        );
+
         return regUser;
     }
 
-    @PostMapping("/verify")
-    public VerificationToken verifyUser(@RequestBody VerificationToken verificationToken) {
-        return userService.verifyToken(verificationToken);
+    @PostMapping("/verify/{userId}")
+    public User verifyUser(@PathVariable long userId) {
+        return userService.verify(userId);
+    }
+
+    @DeleteMapping("/inactive")
+    public ResponseEntity<String> deleteInactiveUsers() {
+        userService.deleteInactiveUsers();
+        return ResponseEntity.ok("Inactive users deleted successfully");
     }
 }
+
