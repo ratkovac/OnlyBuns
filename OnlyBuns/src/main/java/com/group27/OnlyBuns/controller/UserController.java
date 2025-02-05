@@ -7,6 +7,7 @@ import com.group27.OnlyBuns.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,7 +45,12 @@ public class UserController {
 
     @PostMapping("/login")
     public User checkUser(@RequestBody User user) {
-        return userService.checkUser(user.getUsername(), user.getPassword());
+        User validUser = userService.checkUser(user.getUsername(), user.getPassword());
+        if (validUser != null) {
+            validUser.setLastLoginTime(LocalDateTime.now());
+            userService.updateUser(validUser);
+        }
+        return validUser;
     }
 
     @GetMapping("/{userId}/following/count")

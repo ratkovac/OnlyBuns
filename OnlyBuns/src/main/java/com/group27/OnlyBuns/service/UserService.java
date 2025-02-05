@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
 import java.util.List;
@@ -38,6 +39,10 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User updateUser(User user) {
+        return userRepository.save(user);
+    }
+
     // Pronalazak korisnika po korisničkom imenu
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -45,18 +50,13 @@ public class UserService {
 
     public User checkUser(String username, String password) {
         User user = getUserByUsername(username);
-        System.out.println("User ucitan");
-        if (user.isActive()) {
-            if (user.getPassword().equals(password)) {
-                System.out.println("Tacna sifra");
-                return user;
-            }
-            System.out.println("Pogresna sifra");
-        }else{
-            System.out.println("Korisnik nije verifikovan");
+        if (user.isActive() && user.getPassword().equals(password)) {
+            user.setLastLoginTime(LocalDateTime.now());
+            return userRepository.save(user);
         }
         return null;
     }
+
 
     public long countUsersFollowedBy(Long userId) {
         return userFollowerRepository.countByFollowerId(userId);
@@ -119,6 +119,7 @@ public class UserService {
 
         user.setActive(false);
         user.setRole("user");
+        user.setLastLoginTime(LocalDateTime.now());
         return createUser(user);
     }
 
@@ -156,4 +157,10 @@ public class UserService {
     public Optional<User> getUserById(long id) {
         return Optional.ofNullable(userRepository.findById(id));
     }
+
+    public List<User> findInactiveUsers(int days) {
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(days);
+        return userRepository.findInactiveUsersSince(cutoffDate);
+    }
+
 }
