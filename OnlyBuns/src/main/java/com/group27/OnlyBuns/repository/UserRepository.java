@@ -16,12 +16,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "(:firstName IS NULL OR u.firstName LIKE %:firstName%) AND " +
             "(:lastName IS NULL OR u.lastName LIKE %:lastName%) AND " +
             "(:email IS NULL OR u.email LIKE %:email%) AND " +
+            "(:username IS NULL OR u.username LIKE %:username%) AND " +
             "(:minPosts IS NULL OR (SELECT COUNT(p) FROM Post p WHERE p.userId = u.id) >= :minPosts) AND " +
             "(:maxPosts IS NULL OR (SELECT COUNT(p) FROM Post p WHERE p.userId = u.id) <= :maxPosts) AND " +
             "u.role = 'user'")
     Page<User> findUsersByCriteria(@Param("firstName") String firstName,
                                    @Param("lastName") String lastName,
                                    @Param("email") String email,
+                                   @Param("username") String username,
                                    @Param("minPosts") Long minPosts,
                                    @Param("maxPosts") Long maxPosts,
                                    Pageable pageable);

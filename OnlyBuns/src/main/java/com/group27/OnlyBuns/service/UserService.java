@@ -31,6 +31,10 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
 
+    private final Map<Long, List<Long>> followTimestamps = new HashMap<>();
+    private final int MAX_FOLLOWS_PER_MINUTE = 50;
+    private final long TIME_WINDOW_MILLIS = 60_000;
+
     private final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
 
@@ -82,8 +86,8 @@ public class UserService {
 //        return userRepository.findAll(PageRequest.of(pageNumber, pageSize));
 //    }
 
-    public Page<User> searchUsers(String firstName, String lastName, String email, Long minPosts, Long maxPosts, Pageable pageable) {
-        return userRepository.findUsersByCriteria(firstName, lastName, email, minPosts, maxPosts, pageable);
+    public Page<User> searchUsers(String firstName, String lastName, String email, String username, Long minPosts, Long maxPosts, Pageable pageable) {
+        return userRepository.findUsersByCriteria(firstName, lastName, email, username, minPosts, maxPosts, pageable);
     }
 
 
@@ -217,5 +221,76 @@ public class UserService {
             System.out.println("Deleting inactive user: " + user.getUsername());
             userRepository.delete(user);
         });
+    }
+
+    @Transactional
+    public synchronized boolean followUser(Long followerId, Long followeeId) {
+        if (Objects.equals(followerId, followeeId)) return false;
+
+        Optional<User> followerOpt = userRepository.findById(followerId);
+        Optional<User> followeeOpt = userRepository.findById(followeeId);
+
+        if (followerOpt.isEmpty() || followeeOpt.isEmpty()) return false;
+
+        if (userFollowerRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId)) {
+            return false;
+        }
+
+        // Simulacija sporog pristupa (konkurentni test)
+        try {
+            Thread.sleep(500); // <-- testiranje konkurencije
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        UserFollower userFollower = new UserFollower();
+        userFollower.setFollower(followerOpt.get());
+        userFollower.setFollowee(followeeOpt.get());
+
+        userFollowerRepository.save(userFollower);
+        return true;
+    }
+
+    @Transactional
+    public boolean unfollowUser(Long followerId, Long followeeId) {
+        System.out.println("Trying to unfollow: " + followerId + " -> " + followeeId);
+
+        if (Objects.equals(followerId, followeeId)) {
+            return false;
+        }
+
+        boolean exists = userFollowerRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId);
+        System.out.println("Exists? " + exists);
+
+        if (!exists) {
+            System.out.println("User was not following.");
+            return false;
+        }
+
+        userFollowerRepository.deleteByFollowerIdAndFolloweeId(followerId, followeeId);
+        System.out.println("Deleted follow entry.");
+        return true;
+    }
+
+    public boolean isFollowing(Long followerId, Long followeeId) {
+        return userFollowerRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId);
+    }
+
+    private synchronized boolean canFollow(Long userId) {
+        long now = System.currentTimeMillis();
+
+        List<Long> timestamps = followTimestamps.getOrDefault(userId, new ArrayList<>());
+
+        // Očisti stare unose (starije od 1 minuta)
+        timestamps.removeIf(timestamp -> now - timestamp > TIME_WINDOW_MILLIS);
+
+        if (timestamps.size() >= MAX_FOLLOWS_PER_MINUTE) {
+            return false; // Prešao limit
+        }
+
+        // Dodaj trenutni timestamp i sačuvaj
+        timestamps.add(now);
+        followTimestamps.put(userId, timestamps);
+        return true;
     }
 }

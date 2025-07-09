@@ -88,22 +88,17 @@ public class PostService {
 
     @Transactional
     public void deletePost(Long postId, Long userId) {
-        // Dohvati post koji želimo da obrišemo
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found"));
 
-        // Provera da li je korisnik koji pokušava da obriše objavu isti kao korisnik koji je postavio objavu
         if (!post.getUserId().equals(userId)) {
             throw new SecurityException("You are not authorized to delete this post");
         }
 
-        // Prvo obriši sve komentare koji su vezani za ovu objavu
         commentRepository.deleteByPostId(postId);
 
-        // Zatim obriši sve lajkove koji su vezani za ovu objavu
         likeRepository.deleteByPostId(postId);
 
-        // Na kraju obriši samu objavu
         postRepository.delete(post);
     }
 

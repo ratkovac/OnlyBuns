@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -94,12 +96,13 @@ public class UserController {
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
             @RequestParam(required = false) String email,
+            @RequestParam(required = false) String username,
             @RequestParam(required = false) Long minPosts,
             @RequestParam(required = false) Long maxPosts,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return userService.searchUsers(firstName, lastName, email, minPosts, maxPosts, pageable);
+        return userService.searchUsers(firstName, lastName, email, username, minPosts, maxPosts, pageable);
     }
 
     // Sortiranje korisnika po broju praćenja sa podrškom za paginaciju
@@ -156,5 +159,34 @@ public class UserController {
         userService.deleteInactiveUsers();
         return ResponseEntity.ok("Inactive users deleted successfully");
     }
+
+    @GetMapping("/{currentUserId}/isFollowing/{targetUserId}")
+    public ResponseEntity<Map<String, Boolean>> isFollowing(@PathVariable Long currentUserId, @PathVariable Long targetUserId) {
+        boolean isFollowing = userService.isFollowing(currentUserId, targetUserId);
+        return ResponseEntity.ok(Collections.singletonMap("isFollowing", isFollowing));
+    }
+
+    @PostMapping("/{currentUserId}/follow/{targetUserId}")
+    public ResponseEntity<Map<String, String>> followUser(@PathVariable Long currentUserId, @PathVariable Long targetUserId) {
+        try {
+            userService.followUser(currentUserId, targetUserId);
+            return ResponseEntity.ok(Collections.singletonMap("message", "Followed successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(429).body(Collections.singletonMap("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Collections.singletonMap("message", "Došlo je do greške na serveru."));
+        }
+    }
+
+    @PostMapping("/{currentUserId}/unfollow/{targetUserId}")
+    public ResponseEntity<Map<String, String>> unfollowUser(@PathVariable Long currentUserId, @PathVariable Long targetUserId) {
+        try {
+            userService.unfollowUser(currentUserId, targetUserId);
+            return ResponseEntity.ok(Collections.singletonMap("message", "Unfollowed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Collections.singletonMap("message", "Došlo je do greške na serveru."));
+        }
+    }
+
 }
 
