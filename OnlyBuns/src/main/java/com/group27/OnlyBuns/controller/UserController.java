@@ -188,5 +188,9 @@ public class UserController {
         }
     }
 
+    @GetMapping("/engagementStats")
+    public ResponseEntity<Map<String, Long>> getUserEngagementStats() {
+        return ResponseEntity.ok(userService.getUserEngagementStats());
+    }
 }
 

@@ -13,9 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 
 @Service
@@ -29,6 +31,24 @@ public class PostService {
 
     @Autowired
     private LikeRepository likeRepository;
+
+    public Map<String, Long> getPostCounts() {
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("weekly",  postRepository.countByCreatedAtAfter(now.minusWeeks(1)));
+        counts.put("monthly", postRepository.countByCreatedAtAfter(now.minusMonths(1)));
+        counts.put("yearly",  postRepository.countByCreatedAtAfter(now.minusYears(1)));
+        return counts;
+    }
+
+    public Map<String, Long> getCommentCounts() {
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("weekly",  commentRepository.countByCreatedAtAfter(now.minusWeeks(1)));
+        counts.put("monthly", commentRepository.countByCreatedAtAfter(now.minusMonths(1)));
+        counts.put("yearly",  commentRepository.countByCreatedAtAfter(now.minusYears(1)));
+        return counts;
+    }
 
     // Kreiranje nove objave
     public Post createPost(Post post) {

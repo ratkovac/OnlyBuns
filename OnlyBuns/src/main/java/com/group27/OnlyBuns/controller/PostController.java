@@ -178,4 +178,14 @@ public class PostController {
         // Vraćamo HTTP 204 status (No Content)
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/stats/posts")
+    public ResponseEntity<?> getPostStats() {
+        return ResponseEntity.ok(postService.getPostCounts());
+    }
+
+    @GetMapping("/stats/comments")
+    public ResponseEntity<?> getCommentStats() {
+        return ResponseEntity.ok(postService.getCommentCounts());
+    }
 }

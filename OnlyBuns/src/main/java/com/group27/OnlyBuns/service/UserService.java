@@ -2,11 +2,8 @@ package com.group27.OnlyBuns.service;
 
 import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.model.UserFollower;
-import com.group27.OnlyBuns.repository.PostRepository;
-import com.group27.OnlyBuns.repository.UserFollowerRepository;
-import com.group27.OnlyBuns.repository.VerificationTokenRepository;
+import com.group27.OnlyBuns.repository.*;
 import com.group27.OnlyBuns.model.VerificationToken;
-import com.group27.OnlyBuns.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,6 +39,8 @@ public class UserService {
     private UserFollowerRepository userFollowerRepository;
     @Autowired
     private PostRepository postRepository;
+    @Autowired
+    private CommentRepository commentRepository;
 
     @Autowired
     public UserService(UserRepository userRepository, VerificationTokenRepository verificationTokenRepository) {
@@ -292,5 +291,29 @@ public class UserService {
         timestamps.add(now);
         followTimestamps.put(userId, timestamps);
         return true;
+    }
+
+    public Map<String, Long> getUserEngagementStats() {
+        List<User> allUsers = userRepository.findAll();
+        long total = allUsers.size();
+
+        long posted = allUsers.stream()
+                .filter(user -> postRepository.countByUserId(user.getId()) > 0)
+                .count();
+
+        long commented = allUsers.stream()
+                .filter(user -> commentRepository.countByUserId(user.getId()) > 0)
+                .filter(user -> postRepository.countByUserId(user.getId()) == 0) // samo komentarisali
+                .count();
+
+        long inactive = total - posted - commented;
+
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("posted", posted);
+        stats.put("commented", commented);
+        stats.put("inactive", inactive);
+        stats.put("total", total);
+
+        return stats;
     }
 }
