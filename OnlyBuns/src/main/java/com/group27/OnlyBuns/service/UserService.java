@@ -5,6 +5,7 @@ import com.group27.OnlyBuns.model.UserFollower;
 import com.group27.OnlyBuns.repository.*;
 import com.group27.OnlyBuns.model.VerificationToken;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.context.WebServerApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +42,8 @@ public class UserService {
     private PostRepository postRepository;
     @Autowired
     private CommentRepository commentRepository;
+    @Autowired
+    private WebServerApplicationContext serverAppContext;
 
     @Autowired
     public UserService(UserRepository userRepository, VerificationTokenRepository verificationTokenRepository) {
@@ -106,12 +109,10 @@ public class UserService {
     }
 
     public Page<User> getAllUsers(Pageable pageable) {
+        int port = serverAppContext.getWebServer().getPort();
+        System.out.println("Poziv getAllPosts() na portu: " + port);
         return userRepository.findAllNonAdminUsers(pageable);
     }
-
-
-
-
 
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email);
@@ -226,6 +227,10 @@ public class UserService {
     public synchronized boolean followUser(Long followerId, Long followeeId) {
         if (Objects.equals(followerId, followeeId)) return false;
 
+        if (!canFollow(followerId)) {
+            throw new RuntimeException("Prekoračen limit praćenja (max 50 puta u minutu)");
+        }
+
         Optional<User> followerOpt = userRepository.findById(followerId);
         Optional<User> followeeOpt = userRepository.findById(followeeId);
 
@@ -237,7 +242,7 @@ public class UserService {
 
         // Simulacija sporog pristupa (konkurentni test)
         try {
-            Thread.sleep(500); // <-- testiranje konkurencije
+            Thread.sleep(500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -280,14 +285,12 @@ public class UserService {
 
         List<Long> timestamps = followTimestamps.getOrDefault(userId, new ArrayList<>());
 
-        // Očisti stare unose (starije od 1 minuta)
         timestamps.removeIf(timestamp -> now - timestamp > TIME_WINDOW_MILLIS);
 
         if (timestamps.size() >= MAX_FOLLOWS_PER_MINUTE) {
-            return false; // Prešao limit
+            return false;
         }
 
-        // Dodaj trenutni timestamp i sačuvaj
         timestamps.add(now);
         followTimestamps.put(userId, timestamps);
         return true;

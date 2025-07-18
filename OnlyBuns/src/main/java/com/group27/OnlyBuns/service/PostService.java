@@ -3,9 +3,11 @@ package com.group27.OnlyBuns.service;
 import com.group27.OnlyBuns.model.Comment;
 import com.group27.OnlyBuns.model.Like;
 import com.group27.OnlyBuns.model.Post;
+import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.repository.CommentRepository;
 import com.group27.OnlyBuns.repository.LikeRepository;
 import com.group27.OnlyBuns.repository.PostRepository;
+import com.group27.OnlyBuns.repository.UserFollowerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -15,7 +17,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
@@ -31,6 +32,9 @@ public class PostService {
 
     @Autowired
     private LikeRepository likeRepository;
+
+    @Autowired
+    private UserFollowerRepository userFollowerRepository;
 
     public Map<String, Long> getPostCounts() {
         LocalDateTime now = LocalDateTime.now();
@@ -93,16 +97,13 @@ public class PostService {
     public Post updatePost(Long postId, Long userId, String description, String imageUrl) {
         Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
 
-        // Provera da li je korisnik koji pokušava da ažurira objavu isti kao korisnik koji je postavio objavu
         if (!post.getUserId().equals(userId)) {
             throw new SecurityException("You are not authorized to update this post");
         }
 
-        // Ažuriranje samo description i imageUrl
         post.setDescription(description);
         post.setImageUrl(imageUrl);
 
-        // Čuvanje ažurirane objave
         return postRepository.save(post);
     }
 
@@ -116,9 +117,7 @@ public class PostService {
         }
 
         commentRepository.deleteByPostId(postId);
-
         likeRepository.deleteByPostId(postId);
-
         postRepository.delete(post);
     }
 
@@ -168,6 +167,20 @@ public class PostService {
         }
 
         return post.getCreatedAt().isAfter(threshold);
+    }
+
+    public List<Post> getPostsFromFollowedUsers(Long userId) {
+        List<User> followedUsers = userFollowerRepository.findFolloweesByUserId(userId);
+
+        if (followedUsers.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> followedUserIds = followedUsers.stream()
+                .map(User::getId)
+                .toList();
+
+        return postRepository.findByUserIdIn(followedUserIds);
     }
 
 }

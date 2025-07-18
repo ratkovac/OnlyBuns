@@ -20,7 +20,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "(:username IS NULL OR u.username LIKE %:username%) AND " +
             "(:minPosts IS NULL OR (SELECT COUNT(p) FROM Post p WHERE p.userId = u.id) >= :minPosts) AND " +
             "(:maxPosts IS NULL OR (SELECT COUNT(p) FROM Post p WHERE p.userId = u.id) <= :maxPosts) AND " +
-            "u.role = 'user'")
+            "u.role = 'user' AND u.id <> 9999")
     Page<User> findUsersByCriteria(@Param("firstName") String firstName,
                                    @Param("lastName") String lastName,
                                    @Param("email") String email,
@@ -31,7 +31,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 
     @Query("SELECT u FROM User u LEFT JOIN UserFollower f ON u.id = f.follower.id " +
-            "WHERE u.role = 'user' " +
+            "WHERE u.role = 'user' AND u.id <> 9999" +
             "GROUP BY u.id " +
             "ORDER BY " +
             "CASE WHEN :sortDirection = 'DESC' THEN COUNT(f.followee.id) END DESC, " +
@@ -39,13 +39,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findUsersSortedByFollowingCount(@Param("sortDirection") String sortDirection, Pageable pageable);
 
 
-    @Query("SELECT u FROM User u WHERE u.role = 'user' " +
+    @Query("SELECT u FROM User u WHERE u.role = 'user' AND u.id <> 9999" +
             "ORDER BY " +
             "CASE WHEN :sortDirection = 'DESC' THEN u.email END DESC, " +
             "CASE WHEN :sortDirection = 'ASC' THEN u.email END ASC")
     Page<User> findUsersSortedByEmail(@Param("sortDirection") String sortDirection, Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE u.role <> 'admin'")
+    @Query("SELECT u FROM User u WHERE u.role <> 'admin' AND u.id <> 9999")
     Page<User> findAllNonAdminUsers(Pageable pageable);
 
 
@@ -60,6 +60,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     User getUsersById(long userId);
     User findById(long id);
 
-    @Query("SELECT u FROM User u WHERE u.isActive = false AND u.role = 'user'")
+    @Query("SELECT u FROM User u WHERE u.isActive = false AND u.role = 'user' AND u.id <> 9999")
     List<User> findInactiveUsers();
 }

@@ -44,6 +44,4 @@ public class OnlyBunsApplication {
 		userService.registerUser(user);*/
 	}
 
-
-
 }
