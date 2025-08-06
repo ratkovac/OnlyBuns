@@ -7,7 +7,9 @@ import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.service.PostService;
 import com.group27.OnlyBuns.service.LikeService;
 import com.group27.OnlyBuns.service.UserService;
+import dto.LocationDto;
 import dto.PostDTO;
+import io.micrometer.core.annotation.Timed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
@@ -33,15 +35,20 @@ public class PostController {
     private UserService userService;
 
     // Kreiranje nove objave
-    @PostMapping
+    @Timed(value = "http.create_post.duration", description = "Duration of create post HTTP request")
+    @PostMapping("/createPost")
     public Post createPost(@RequestBody Post post) {
         return postService.createPost(post);
     }
 
-    // Dodavanje komentara na post
     @PostMapping("/{postId}/comments")
-    public Comment addComment(@PathVariable Long postId, @RequestBody Comment comment) {
-        return postService.addComment(postId, comment);
+    public ResponseEntity<Comment> addComment(@PathVariable Long postId, @RequestBody Comment comment) {
+        try {
+            Comment addedComment = postService.addComment(postId, comment);
+            return new ResponseEntity<>(addedComment, HttpStatus.CREATED);
+        } catch (RuntimeException ex) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
     }
 
     // Lajkovanje posta
@@ -75,7 +82,7 @@ public class PostController {
             long likeCount = postService.getLikeCount(post.getId());
             List<Comment> comments = postService.getComments(post.getId());
 
-            PostDTO postDTO = new PostDTO(post, likeCount, comments);
+            PostDTO postDTO = new PostDTO(post, likeCount, comments, post.getCreatedAt());
             postDTOs.add(postDTO);
         }
         return postDTOs;
@@ -96,7 +103,7 @@ public class PostController {
             long likeCount = postService.getLikeCount(post.getId());
             List<Comment> comments = postService.getComments(post.getId());
 
-            PostDTO postDTO = new PostDTO(post, likeCount, comments);
+            PostDTO postDTO = new PostDTO(post, likeCount, comments, post.getCreatedAt());
             posts.add(postDTO);
         }
         return posts;
@@ -112,7 +119,7 @@ public class PostController {
             long likeCount = postService.getLikeCount(post.getId());
             List<Comment> comments = postService.getComments(post.getId());
 
-            PostDTO postDTO = new PostDTO(post, likeCount, comments);
+            PostDTO postDTO = new PostDTO(post, likeCount, comments, post.getCreatedAt());
             posts.add(postDTO);
         }
         return posts;
@@ -152,7 +159,7 @@ public class PostController {
         long likeCount = postService.getLikeCount(post.getId());
         List<Comment> comments = postService.getComments(post.getId());
 
-        PostDTO postDTO = new PostDTO(post, likeCount, comments);
+        PostDTO postDTO = new PostDTO(post, likeCount, comments, post.getCreatedAt());
         return postDTO;
     }
 
@@ -174,6 +181,11 @@ public class PostController {
         postService.deletePost(postId, userId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{postId}/location")
+    public LocationDto getPostLocation(@PathVariable Long postId) {
+        return postService.getLocationForPost(postId);
     }
 
     @GetMapping("/stats/posts")
@@ -201,5 +213,4 @@ public class PostController {
 
         return postDTOs;
     }
-
 }

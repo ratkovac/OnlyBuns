@@ -7,6 +7,7 @@ import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.repository.CommentRepository;
 import com.group27.OnlyBuns.repository.LikeRepository;
 import com.group27.OnlyBuns.repository.PostRepository;
+import dto.LocationDto;
 import com.group27.OnlyBuns.repository.UserFollowerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,8 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.Map;
-
 
 @Service
 public class PostService {
@@ -60,21 +61,42 @@ public class PostService {
         return postRepository.save(post);
     }
 
-    // Dodavanje komentara
+    @Transactional
     public Comment addComment(Long postId, Comment comment) {
-        comment.setPostId(postId); // post koji je komentarisao
-        comment.setCreatedAt(LocalDateTime.now()); // postavljanje vremena kreiranja
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        long commentCount = commentRepository.findByUserIdAndCreatedAtAfter(comment.getUserId(), oneHourAgo).size();
+
+        if (commentCount >= 10) {
+            throw new RuntimeException("You have exceeded the limit of 60 comments per hour.");
+        }
+
+        comment.setPostId(postId);
+        comment.setCreatedAt(LocalDateTime.now());
         return commentRepository.save(comment);
     }
 
-    // Lajkovanje objave
+    @Transactional
     public Like addLike(Long postId, Long userId) {
-        Like like = new Like();
-        like.setPostId(postId);
-        like.setUserId(userId);
-        like.setCreatedAt(LocalDateTime.now());
-        return likeRepository.save(like);
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        postRepository.lockPostForUpdate(postId);
+
+        Optional<Like> existingLike = likeRepository.findByPostIdAndUserId(postId, userId);
+        if (!existingLike.isPresent()) {
+            Like like = new Like();
+            like.setPostId(postId);
+            like.setUserId(userId);
+            like.setCreatedAt(LocalDateTime.now());
+            return likeRepository.save(like);
+        }
+
+        return null;
     }
+
     public long getLikeCount(Long postId) {
         return likeRepository.countByPostId(postId);
     }
@@ -169,7 +191,12 @@ public class PostService {
         return post.getCreatedAt().isAfter(threshold);
     }
 
-    public List<Post> getPostsFromFollowedUsers(Long userId) {
+    @Cacheable(value = "postLocations", key = "#postId")
+    public LocationDto getLocationForPost(Long postId) {
+        return postRepository.findLocationByPostId(postId);
+    }
+
+  public List<Post> getPostsFromFollowedUsers(Long userId) {
         List<User> followedUsers = userFollowerRepository.findFolloweesByUserId(userId);
 
         if (followedUsers.isEmpty()) {
@@ -182,5 +209,4 @@ public class PostService {
 
         return postRepository.findByUserIdIn(followedUserIds);
     }
-
 }

@@ -114,6 +114,10 @@ public class UserService {
         return userRepository.findAllNonAdminUsers(pageable);
     }
 
+    public User updateUser(User user) {
+        return userRepository.save(user);
+    }
+
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }

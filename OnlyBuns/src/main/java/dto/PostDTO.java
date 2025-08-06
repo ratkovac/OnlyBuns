@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.group27.OnlyBuns.model.Comment;
 import com.group27.OnlyBuns.model.Post;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @JsonSerialize
@@ -16,18 +17,20 @@ public class PostDTO {
     private String imageUrl;
     private long likeCount;
     private List<Comment> comments;
+    private LocalDateTime createdAt;
 
     // Default constructor for deserialization
     public PostDTO() {}
 
     // Constructor that initializes fields using a Post object
-    public PostDTO(Post post, long likeCount, List<Comment> comments) {
+    public PostDTO(Post post, long likeCount, List<Comment> comments, LocalDateTime createdAt) {
         this.id = post.getId();
         this.userId = post.getUserId();
         this.description = post.getDescription();
         this.imageUrl = post.getImageUrl();
         this.likeCount = likeCount;
         this.comments = comments;
+        this.createdAt = createdAt;
     }
 
     // Getters and Setters
@@ -77,5 +80,13 @@ public class PostDTO {
 
     public void setComments(List<Comment> comments) {
         this.comments = comments;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

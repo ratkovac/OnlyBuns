@@ -3,6 +3,8 @@ package com.group27.OnlyBuns.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -34,6 +36,17 @@ public class User {
 
     @Column(nullable = false)
     private boolean isActive;
+
+    @Column(nullable = false)
+    private LocalDateTime lastLoginTime;
+
+    public LocalDateTime getLastLoginTime() {
+        return lastLoginTime;
+    }
+
+    public void setLastLoginTime(LocalDateTime lastLoginTime) {
+        this.lastLoginTime = lastLoginTime;
+    }
 
     public Long getId() {
         return id;

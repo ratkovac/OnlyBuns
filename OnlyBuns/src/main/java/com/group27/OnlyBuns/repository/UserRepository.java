@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
@@ -62,4 +63,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.isActive = false AND u.role = 'user' AND u.id <> 9999")
     List<User> findInactiveUsers();
+
+    @Query("SELECT u FROM User u WHERE u.lastLoginTime < :cutoffDate")
+    List<User> findInactiveUsersSince(@Param("cutoffDate") LocalDateTime cutoffDate);
 }
