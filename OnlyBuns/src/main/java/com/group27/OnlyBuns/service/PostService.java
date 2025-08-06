@@ -3,10 +3,12 @@ package com.group27.OnlyBuns.service;
 import com.group27.OnlyBuns.model.Comment;
 import com.group27.OnlyBuns.model.Like;
 import com.group27.OnlyBuns.model.Post;
+import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.repository.CommentRepository;
 import com.group27.OnlyBuns.repository.LikeRepository;
 import com.group27.OnlyBuns.repository.PostRepository;
 import dto.LocationDto;
+import com.group27.OnlyBuns.repository.UserFollowerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -14,11 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-
+import java.util.Map;
 
 @Service
 public class PostService {
@@ -31,6 +33,27 @@ public class PostService {
 
     @Autowired
     private LikeRepository likeRepository;
+
+    @Autowired
+    private UserFollowerRepository userFollowerRepository;
+
+    public Map<String, Long> getPostCounts() {
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("weekly",  postRepository.countByCreatedAtAfter(now.minusWeeks(1)));
+        counts.put("monthly", postRepository.countByCreatedAtAfter(now.minusMonths(1)));
+        counts.put("yearly",  postRepository.countByCreatedAtAfter(now.minusYears(1)));
+        return counts;
+    }
+
+    public Map<String, Long> getCommentCounts() {
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("weekly",  commentRepository.countByCreatedAtAfter(now.minusWeeks(1)));
+        counts.put("monthly", commentRepository.countByCreatedAtAfter(now.minusMonths(1)));
+        counts.put("yearly",  commentRepository.countByCreatedAtAfter(now.minusYears(1)));
+        return counts;
+    }
 
     // Kreiranje nove objave
     public Post createPost(Post post) {
@@ -96,37 +119,27 @@ public class PostService {
     public Post updatePost(Long postId, Long userId, String description, String imageUrl) {
         Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
 
-        // Provera da li je korisnik koji pokušava da ažurira objavu isti kao korisnik koji je postavio objavu
         if (!post.getUserId().equals(userId)) {
             throw new SecurityException("You are not authorized to update this post");
         }
 
-        // Ažuriranje samo description i imageUrl
         post.setDescription(description);
         post.setImageUrl(imageUrl);
 
-        // Čuvanje ažurirane objave
         return postRepository.save(post);
     }
 
     @Transactional
     public void deletePost(Long postId, Long userId) {
-        // Dohvati post koji želimo da obrišemo
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found"));
 
-        // Provera da li je korisnik koji pokušava da obriše objavu isti kao korisnik koji je postavio objavu
         if (!post.getUserId().equals(userId)) {
             throw new SecurityException("You are not authorized to delete this post");
         }
 
-        // Prvo obriši sve komentare koji su vezani za ovu objavu
         commentRepository.deleteByPostId(postId);
-
-        // Zatim obriši sve lajkove koji su vezani za ovu objavu
         likeRepository.deleteByPostId(postId);
-
-        // Na kraju obriši samu objavu
         postRepository.delete(post);
     }
 
@@ -181,5 +194,19 @@ public class PostService {
     @Cacheable(value = "postLocations", key = "#postId")
     public LocationDto getLocationForPost(Long postId) {
         return postRepository.findLocationByPostId(postId);
+    }
+
+  public List<Post> getPostsFromFollowedUsers(Long userId) {
+        List<User> followedUsers = userFollowerRepository.findFolloweesByUserId(userId);
+
+        if (followedUsers.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> followedUserIds = followedUsers.stream()
+                .map(User::getId)
+                .toList();
+
+        return postRepository.findByUserIdIn(followedUserIds);
     }
 }

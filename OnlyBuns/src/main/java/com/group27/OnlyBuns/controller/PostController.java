@@ -170,7 +170,6 @@ public class PostController {
             @RequestBody Post updatedPost,
             @RequestParam Long userId) {
 
-        // Pozivamo servis za ažuriranje objave
         return postService.updatePost(postId, userId, updatedPost.getDescription(), updatedPost.getImageUrl());
     }
 
@@ -179,15 +178,39 @@ public class PostController {
             @PathVariable Long postId,
             @RequestParam Long userId) {
 
-        // Pozivamo servis za brisanje objave
         postService.deletePost(postId, userId);
 
-        // Vraćamo HTTP 204 status (No Content)
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{postId}/location")
     public LocationDto getPostLocation(@PathVariable Long postId) {
         return postService.getLocationForPost(postId);
+    }
+
+    @GetMapping("/stats/posts")
+    public ResponseEntity<?> getPostStats() {
+        return ResponseEntity.ok(postService.getPostCounts());
+    }
+
+    @GetMapping("/stats/comments")
+    public ResponseEntity<?> getCommentStats() {
+        return ResponseEntity.ok(postService.getCommentCounts());
+    }
+
+    @GetMapping("/fromFollowed")
+    public List<PostDTO> getPostsFromFollowedUsers(@RequestParam Long userId) {
+        List<Post> posts = postService.getPostsFromFollowedUsers(userId);
+        List<PostDTO> postDTOs = new ArrayList<>();
+
+        for (Post post : posts) {
+            long likeCount = postService.getLikeCount(post.getId());
+            List<Comment> comments = postService.getComments(post.getId());
+
+            PostDTO postDTO = new PostDTO(post, likeCount, comments);
+            postDTOs.add(postDTO);
+        }
+
+        return postDTOs;
     }
 }
