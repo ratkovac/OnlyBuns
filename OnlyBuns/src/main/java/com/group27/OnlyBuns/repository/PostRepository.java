@@ -25,5 +25,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE p.id = :postId")
     Post lockPostForUpdate(@Param("postId") Long postId);
     long countByCreatedAtAfter(LocalDateTime dateTime);
-    List<Post> findByUserIdIn(List<Long> userIds);}
-}  
+    List<Post> findByUserIdIn(List<Long> userIds);
+}
