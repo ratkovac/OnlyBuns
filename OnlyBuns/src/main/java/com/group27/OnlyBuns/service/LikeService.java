@@ -39,7 +39,10 @@ public class LikeService {
     }
 
     // Ostale metode za lajkovanje, brisanje lajka, itd.
-
+    @Transactional
+    public void deleteLike(Long postId, Long userId) {
+        likeRepository.deleteByPostIdAndUserId(postId, userId);
+    }
 
     @Cacheable(value = "pupularPostsLast7Days", key = "#root.methodName")
     public List<Long> getTop5LikedPostIdsInLast7Days() {
