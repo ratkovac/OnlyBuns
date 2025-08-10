@@ -80,10 +80,10 @@ public class PostService {
 
     @Transactional
     public Like addLike(Long postId, Long userId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
-
-        postRepository.lockPostForUpdate(postId);
+        Post post = postRepository.lockPostForUpdate(postId);
+        if (post == null) {
+            throw new RuntimeException("Post not found");
+        }
 
         Optional<Like> existingLike = likeRepository.findByPostIdAndUserId(postId, userId);
         if (!existingLike.isPresent()) {

@@ -207,7 +207,7 @@ public class PostController {
             long likeCount = postService.getLikeCount(post.getId());
             List<Comment> comments = postService.getComments(post.getId());
 
-            PostDTO postDTO = new PostDTO(post, likeCount, comments);
+            PostDTO postDTO = new PostDTO(post, likeCount, comments, post.getCreatedAt());
             postDTOs.add(postDTO);
         }
 
