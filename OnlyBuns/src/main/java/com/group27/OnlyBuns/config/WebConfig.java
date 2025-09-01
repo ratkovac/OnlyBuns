@@ -11,8 +11,10 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/images/**")
                 .addResourceLocations(
-                        "file:images/",                          // već postoji
-                        "file:OnlyBuns/images/originals/"        // dodaj i ovo
-                );
+                        "file:images/"
+                        //"file:OnlyBuns/images/originals/"
+                )
+                .setCachePeriod(43200);
     }
+
 }
