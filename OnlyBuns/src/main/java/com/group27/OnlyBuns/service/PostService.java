@@ -7,6 +7,7 @@ import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.repository.CommentRepository;
 import com.group27.OnlyBuns.repository.LikeRepository;
 import com.group27.OnlyBuns.repository.PostRepository;
+import com.group27.OnlyBuns.utils.RateLimiter;
 import dto.LocationDto;
 import com.group27.OnlyBuns.repository.UserFollowerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ public class PostService {
     @Autowired
     private UserFollowerRepository userFollowerRepository;
 
+    @Autowired
+    private RateLimiter rateLimiter;
+
     public Map<String, Long> getPostCounts() {
         LocalDateTime now = LocalDateTime.now();
         Map<String, Long> counts = new HashMap<>();
@@ -65,6 +69,10 @@ public class PostService {
     public Comment addComment(Long postId, Comment comment) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        if (!rateLimiter.allowRequest(comment.getUserId())) {
+            throw new RuntimeException("Prekoracen limit komentara (max 5 po minuti)");
+        }
 
         LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
         long commentCount = commentRepository.findByUserIdAndCreatedAtAfter(comment.getUserId(), oneHourAgo).size();
