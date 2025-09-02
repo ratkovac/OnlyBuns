@@ -86,18 +86,13 @@ public class MessageService {
     }
 
     public List<MessageDTO> getChatMessages(Long chatId, Long userId) {
-        ChatMember member = chatMemberRepository.findByUserIdAndChatId(userId, chatId)
-                .orElseThrow(() -> new RuntimeException("User is not a member"));
-
-        Pageable pageable = PageRequest.of(0, 100);
-        return messageRepository.findByChatIdAndTimestampAfterOrderByTimestampDesc(
-                        chatId, member.getJoinedAt(), pageable)
+        Pageable pageable = PageRequest.of(0, 10);
+        return messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable)
                 .getContent()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-
 
     private MessageDTO convertToDTO(Message message) {
         MessageDTO dto = new MessageDTO();

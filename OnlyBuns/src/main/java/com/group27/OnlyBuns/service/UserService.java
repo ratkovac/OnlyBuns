@@ -218,7 +218,7 @@ public class UserService {
         return followed;
     }
 
-    @Scheduled(cron = "0 0 0 L * ?") // Pokreće se u ponoć poslednjeg dana u mesecu
+    @Scheduled(cron = "0 0 0 L * ?") // Pokreće se u ponoć poslednjeg dana u mesecu 0 30 12 * * ?
     public void deleteInactiveUsers() {
         List<User> inactiveUsers = userRepository.findInactiveUsers();
         inactiveUsers.forEach(user -> {
