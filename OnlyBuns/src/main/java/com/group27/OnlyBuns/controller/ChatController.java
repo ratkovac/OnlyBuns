@@ -98,6 +98,20 @@ public class ChatController {
         }
     }
 
+    @GetMapping("/{chatId}/messages/page")
+    public ResponseEntity<List<MessageDTO>> getChatMessagesWithPagination(
+            @PathVariable Long chatId,
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        try {
+            List<MessageDTO> messages = messageService.getChatMessagesWithPagination(chatId, userId, page, size);
+            return ResponseEntity.ok(messages);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/{chatId}/messages")
     public ResponseEntity<MessageDTO> sendMessage(
             @PathVariable Long chatId,
@@ -112,8 +126,12 @@ public class ChatController {
 
     @GetMapping("/{chatId}/members/active")
     public ResponseEntity<List<ChatMemberDTO>> getActiveMembers(@PathVariable Long chatId) {
-        List<ChatMemberDTO> activeMembers = chatService.getActiveMembers(chatId);
-        return ResponseEntity.ok(activeMembers);
+        try {
+            List<ChatMemberDTO> activeMembers = chatService.getActiveMembers(chatId);
+            return ResponseEntity.ok(activeMembers);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PostMapping("/{chatId}/leave")
@@ -135,6 +153,20 @@ public class ChatController {
         try {
             chatService.deleteChat(chatId, adminId);
             return ResponseEntity.ok("Chat deleted successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{chatId}")
+    public ResponseEntity<String> updateChatInfo(
+            @PathVariable Long chatId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String description,
+            @RequestParam Long adminId) {
+        try {
+            chatService.updateChatInfo(chatId, name, description, adminId);
+            return ResponseEntity.ok("Chat updated successfully");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

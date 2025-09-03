@@ -12,12 +12,10 @@ public class MessageDTO {
     private String senderFullName;
     private Long chatId;
     private LocalDateTime timestamp;
-    private ChatMessageType type; // Promenjeno
+    private ChatMessageType type;
 
-    // Konstruktori
     public MessageDTO() {}
 
-    // Getteri i setteri
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -39,6 +37,6 @@ public class MessageDTO {
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 
-    public ChatMessageType getType() { return type; } // Promenjeno
-    public void setType(ChatMessageType type) { this.type = type; } // Promenjeno
+    public ChatMessageType getType() { return type; }
+    public void setType(ChatMessageType type) { this.type = type; }
 }

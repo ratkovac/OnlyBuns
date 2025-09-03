@@ -10,8 +10,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
+        config.enableSimpleBroker("/topic", "/queue");
+
         config.setApplicationDestinationPrefixes("/app");
+
+        config.setUserDestinationPrefix("/user");
     }
 
     @Override
@@ -19,5 +22,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
+
+        registry.addEndpoint("/websocket")
+                .setAllowedOriginPatterns("*");
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+        registry.setMessageSizeLimit(128 * 1024);
+        registry.setSendBufferSizeLimit(512 * 1024);
+        registry.setSendTimeLimit(20 * 1000);
     }
 }

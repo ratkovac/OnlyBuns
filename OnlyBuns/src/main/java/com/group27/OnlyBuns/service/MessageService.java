@@ -6,7 +6,7 @@ import com.group27.OnlyBuns.repository.ChatRepository;
 import com.group27.OnlyBuns.repository.MessageRepository;
 import com.group27.OnlyBuns.repository.UserRepository;
 import dto.MessageDTO;
-import org.springframework.data.domain.Page;
+import dto.TypingIndicatorDTO;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -55,11 +55,10 @@ public class MessageService {
         message.setType(ChatMessageType.TEXT);
 
         Message savedMessage = messageRepository.save(message);
-
         MessageDTO messageDTO = convertToDTO(savedMessage);
 
         messagingTemplate.convertAndSend(
-                "/topic/chat/" + chatId,
+                "/topic/chat/" + chatId + "/messages",
                 messageDTO
         );
 
@@ -82,16 +81,86 @@ public class MessageService {
         Message saved = messageRepository.save(message);
         MessageDTO dto = convertToDTO(saved);
 
-        messagingTemplate.convertAndSend("/topic/chat/" + chatId, dto);
+        messagingTemplate.convertAndSend("/topic/chat/" + chatId + "/messages", dto);
+    }
+
+    public void broadcastTypingIndicator(Long chatId, Long userId, String username, boolean isTyping) {
+        chatMemberRepository.findByUserIdAndChatId(userId, chatId)
+                .orElseThrow(() -> new RuntimeException("User is not a member of this chat"));
+
+        TypingIndicatorDTO typingIndicator = new TypingIndicatorDTO();
+        typingIndicator.setUserId(userId);
+        typingIndicator.setUsername(username);
+        typingIndicator.setTyping(isTyping);
+        typingIndicator.setChatId(chatId);
+
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + chatId + "/typing",
+                typingIndicator
+        );
     }
 
     public List<MessageDTO> getChatMessages(Long chatId, Long userId) {
+        chatMemberRepository.findByUserIdAndChatId(userId, chatId)
+                .orElseThrow(() -> new RuntimeException("User is not a member of this chat"));
+
         Pageable pageable = PageRequest.of(0, 10);
         return messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable)
                 .getContent()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    public List<MessageDTO> getChatMessagesWithPagination(Long chatId, Long userId, int page, int size) {
+        chatMemberRepository.findByUserIdAndChatId(userId, chatId)
+                .orElseThrow(() -> new RuntimeException("User is not a member of this chat"));
+
+        Pageable pageable = PageRequest.of(page, size);
+        return messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable)
+                .getContent()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public void broadcastUserJoined(Long chatId, String username) {
+        sendSystemMessage(chatId, username + " joined the chat");
+
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + chatId + "/user-joined",
+                username
+        );
+    }
+
+    public void broadcastUserLeft(Long chatId, String username) {
+        sendSystemMessage(chatId, username + " left the chat");
+
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + chatId + "/user-left",
+                username
+        );
+    }
+
+    public void broadcastChatUpdate(Long chatId, String updateMessage) {
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + chatId + "/updates",
+                updateMessage
+        );
+    }
+
+    public void broadcastChatCreated(Long chatId, String chatName, Long adminId) {
+        messagingTemplate.convertAndSend(
+                "/topic/user/" + adminId + "/chat-created",
+                "New chat '" + chatName + "' created"
+        );
+    }
+
+    public void broadcastChatDeleted(Long chatId) {
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + chatId + "/deleted",
+                "Chat has been deleted"
+        );
     }
 
     private MessageDTO convertToDTO(Message message) {
@@ -107,6 +176,7 @@ public class MessageService {
         return dto;
     }
 
+    @Transactional
     public void deleteAllMessagesForChat(Long chatId) {
         messageRepository.deleteByChatId(chatId);
     }

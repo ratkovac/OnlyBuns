@@ -14,10 +14,8 @@ public class ChatMemberDTO {
     private MemberRole role;
     private boolean isActive;
 
-    // Konstruktori
     public ChatMemberDTO() {}
 
-    // Getteri i setteri
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

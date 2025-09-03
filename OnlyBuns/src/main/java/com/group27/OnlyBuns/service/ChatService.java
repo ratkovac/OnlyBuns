@@ -48,6 +48,8 @@ public class ChatService {
         adminMember.setRole(MemberRole.ADMIN);
         chatMemberRepository.save(adminMember);
 
+        messageService.sendSystemMessage(savedChat.getId(), "Chat created by " + admin.getUsername());
+
         return convertToDTO(savedChat);
     }
 
@@ -86,7 +88,7 @@ public class ChatService {
         member.setRole(MemberRole.MEMBER);
         chatMemberRepository.save(member);
 
-        sendSystemMessage(chatId, user.getUsername() + " joined the chat");
+        messageService.broadcastUserJoined(chatId, user.getUsername());
     }
 
     public void removeUserFromChatByUsername(Long chatId, String username, Long adminId) {
@@ -102,12 +104,12 @@ public class ChatService {
 
         ChatMember member = chatMemberRepository.findByUserIdAndChatId(user.getId(), chatId)
                 .filter(ChatMember::isActive)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found in chat"));
 
         member.setActive(false);
         chatMemberRepository.save(member);
 
-        sendSystemMessage(chatId, user.getUsername() + " left the chat");
+        messageService.broadcastUserLeft(chatId, user.getUsername());
     }
 
     public List<ChatMemberDTO> searchUsersByUsernamePrefix(String prefix) {
@@ -131,10 +133,6 @@ public class ChatService {
                 .collect(Collectors.toList());
     }
 
-    private void sendSystemMessage(Long chatId, String content) {
-        messageService.sendSystemMessage(chatId, content);
-    }
-
     public void leaveChat(Long chatId, Long userId) {
         ChatMember member = chatMemberRepository.findByUserIdAndChatId(userId, chatId)
                 .filter(ChatMember::isActive)
@@ -150,7 +148,7 @@ public class ChatService {
         member.setActive(false);
         chatMemberRepository.save(member);
 
-        sendSystemMessage(chatId, member.getUser().getUsername() + " left the chat");
+        messageService.broadcastUserLeft(chatId, member.getUser().getUsername());
     }
 
     @Transactional
@@ -162,9 +160,40 @@ public class ChatService {
             throw new RuntimeException("Only admin can delete the chat");
         }
 
+        messageService.broadcastChatUpdate(chatId, "Chat has been deleted by admin");
+
         messageService.deleteAllMessagesForChat(chatId);
         chatMemberRepository.deleteByChatId(chatId);
         chatRepository.delete(chat);
+    }
+
+    public void updateChatInfo(Long chatId, String newName, String newDescription, Long adminId) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+
+        if (!chat.getAdmin().getId().equals(adminId)) {
+            throw new RuntimeException("Only admin can update chat information");
+        }
+
+        boolean updated = false;
+        StringBuilder updateMessage = new StringBuilder("Chat updated: ");
+
+        if (newName != null && !newName.equals(chat.getName())) {
+            chat.setName(newName);
+            updateMessage.append("name changed to '").append(newName).append("' ");
+            updated = true;
+        }
+
+        if (newDescription != null && !newDescription.equals(chat.getDescription())) {
+            chat.setDescription(newDescription);
+            updateMessage.append("description updated ");
+            updated = true;
+        }
+
+        if (updated) {
+            chatRepository.save(chat);
+            messageService.broadcastChatUpdate(chatId, updateMessage.toString());
+        }
     }
 
     private ChatDTO convertToDTO(Chat chat) {
