@@ -60,7 +60,7 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 			<version>1.12.5</version>
 		</dependency>
-		<!-- Jackson za JSON serijalizaciju -->
+
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
@@ -110,14 +110,11 @@
 			<version>3.1.0</version>
 		</dependency>
 
-		<!-- Jackson za konverziju JSON u DTO -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
-
-		<!-- Jakarta Mail API -->
 		<dependency>
 			<groupId>jakarta.mail</groupId>
 			<artifactId>jakarta.mail-api</artifactId>
@@ -142,9 +139,6 @@
 			<scope>runtime</scope>
 		</dependency>
 
-
-
-		<!-- Ako koristite Javamail za slanje putem SMTP -->
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>javax.mail</artifactId>
@@ -154,14 +148,14 @@
 		<dependency>
 			<groupId>jakarta.servlet</groupId>
 			<artifactId>jakarta.servlet-api</artifactId>
-			<version>6.0.0</version> <!-- Verzija kompatibilna sa Spring Boot 3.x -->
+			<version>6.0.0</version>
 			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>com.rabbitmq</groupId>
 			<artifactId>amqp-client</artifactId>
-			<version>5.18.0</version> <!-- Proverite najnoviju verziju -->
+			<version>5.18.0</version>
 		</dependency>
         <dependency>
             <groupId>org.springframework.amqp</groupId>
@@ -183,14 +177,14 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>7</source>
-                    <target>7</target>
-                </configuration>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-compiler-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <source>7</source>-->
+<!--                    <target>7</target>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
         </plugins>
 	</build>
 
