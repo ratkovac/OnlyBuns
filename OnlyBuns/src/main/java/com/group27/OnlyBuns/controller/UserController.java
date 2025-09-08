@@ -198,5 +198,11 @@ public class UserController {
     public ResponseEntity<Map<String, Long>> getUserEngagementStats() {
         return ResponseEntity.ok(userService.getUserEngagementStats());
     }
+
+    @GetMapping("/activeUsersCount")
+    public Map<String, Long> getActiveUsersCount() {
+        long count = userService.countActiveUsers();
+        return Collections.singletonMap("activeUsers", count);
+    }
 }
 

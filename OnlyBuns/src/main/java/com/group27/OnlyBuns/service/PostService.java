@@ -71,13 +71,13 @@ public class PostService {
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
         if (!rateLimiter.allowRequest(comment.getUserId())) {
-            throw new RuntimeException("Prekoracen limit komentara (max 5 po minuti)");
+            throw new RuntimeException("You have exceeded the limit (max 5 per minute)");
         }
 
         LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
         long commentCount = commentRepository.findByUserIdAndCreatedAtAfter(comment.getUserId(), oneHourAgo).size();
 
-        if (commentCount >= 10) {
+        if (commentCount >= 60) {
             throw new RuntimeException("You have exceeded the limit of 60 comments per hour.");
         }
 

@@ -323,4 +323,8 @@ public class UserService {
 
         return stats;
     }
+
+    public long countActiveUsers() {
+        return userRepository.countActiveUsers();
+    }
 }

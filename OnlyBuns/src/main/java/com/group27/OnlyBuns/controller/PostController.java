@@ -17,8 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/posts")
@@ -80,8 +82,10 @@ public class PostController {
 
         for (Post post : posts) {
             long likeCount = postService.getLikeCount(post.getId());
-            List<Comment> comments = postService.getComments(post.getId());
-
+            List<Comment> comments = postService.getComments(post.getId())
+                    .stream()
+                    .sorted(Comparator.comparing(Comment::getCreatedAt).reversed())
+                    .collect(Collectors.toList());
             PostDTO postDTO = new PostDTO(post, likeCount, comments, post.getCreatedAt());
             postDTOs.add(postDTO);
         }

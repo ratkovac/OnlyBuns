@@ -66,4 +66,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.lastLoginTime < :cutoffDate")
     List<User> findInactiveUsersSince(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = true AND u.role = 'user' AND u.id <> 9999")
+    long countActiveUsers();
 }
