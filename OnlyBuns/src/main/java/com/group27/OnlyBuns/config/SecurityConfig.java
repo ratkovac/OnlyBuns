@@ -36,6 +36,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/users/login", "/users/register", "/users/verify/{userId}").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/posts", "/posts/count", "/posts/createPost").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/posts/createPost").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users", "/users/all-users").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users/getById/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/test-loadbalancer/**").permitAll()
+                        .requestMatchers("/images/originals/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
