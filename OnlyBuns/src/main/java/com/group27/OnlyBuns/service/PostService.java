@@ -152,8 +152,7 @@ public class PostService {
         likeRepository.deleteByPostId(postId);
         postRepository.delete(post);
     }
-
-    @PreAuthorize("hasAuthority('ROLE_user')")
+    
     public List<Post> getPostsByUserId(Long userId) {
         return postRepository.findByUserId(userId);
     }
