@@ -4,6 +4,7 @@ import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.model.UserFollower;
 import com.group27.OnlyBuns.repository.*;
 import com.group27.OnlyBuns.model.VerificationToken;
+import com.group27.OnlyBuns.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.context.WebServerApplicationContext;
 import org.springframework.data.domain.Page;
@@ -44,11 +45,14 @@ public class UserService {
     private CommentRepository commentRepository;
     @Autowired
     private WebServerApplicationContext serverAppContext;
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Autowired
-    public UserService(UserRepository userRepository, VerificationTokenRepository verificationTokenRepository) {
+    public UserService(UserRepository userRepository, VerificationTokenRepository verificationTokenRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.verificationTokenRepository = verificationTokenRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     // Kreiranje novog korisnika
@@ -164,27 +168,14 @@ public class UserService {
         if (user.isActive()) {
             if (user.getPassword().equals(password)) {
                 System.out.println("Tacna sifra");
-                return generateJWT(username, user.getId(), user.getRole());
+                return jwtUtil.generateToken(user);
+                //return jwtUtil.generateToken(username, user.getId(), user.getRole());
             }
             System.out.println("Pogresna sifra");
         }else{
             System.out.println("Korisnik nije verifikovan");
         }
         return null;
-    }
-
-    private static final String SECRET_KEY = "9lA8q1tUjKTx1mX2LdKvQ7fV2pNc5wQ6R2p3MmN8P1A=";
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 2; // 2 sata
-
-    public static String generateJWT(String username, Long userId, String role) {
-        return Jwts.builder()
-                .setSubject(username) // sub: korisničko ime
-                .claim("id", userId)   // Dodaj ID korisnika kao claim
-                .claim("role", role)   // Dodaj ulogu korisnika kao claim
-                .setIssuedAt(new Date()) // Datum izdavanja
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) // Rok trajanja
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY) // Potpisivanje sa tajnim ključem
-                .compact();
     }
 
     public User verify(long userId) {
@@ -322,5 +313,9 @@ public class UserService {
         stats.put("total", total);
 
         return stats;
+    }
+
+    public long countActiveUsers() {
+        return userRepository.countActiveUsers();
     }
 }

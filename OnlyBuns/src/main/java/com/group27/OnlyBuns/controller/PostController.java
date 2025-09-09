@@ -14,11 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/posts")
@@ -51,7 +54,6 @@ public class PostController {
         }
     }
 
-    // Lajkovanje posta
     @PostMapping("/{postId}/likes")
     public Like addLike(@PathVariable Long postId, @RequestParam Long userId) {
         boolean isLiked = likeService.isPostLikedByUser(postId, userId);
@@ -68,11 +70,9 @@ public class PostController {
 
         boolean isLiked = likeService.isPostLikedByUser(postId, userId);
 
-        // Vraćamo true ili false u zavisnosti od toga da li je korisnik lajkovao
         return new ResponseEntity<>(isLiked, HttpStatus.OK);
     }
 
-    // Dohvat svih objava
     @GetMapping
     public List<PostDTO> getAllPosts() {
         List<PostDTO> postDTOs = new ArrayList<>();
@@ -80,8 +80,10 @@ public class PostController {
 
         for (Post post : posts) {
             long likeCount = postService.getLikeCount(post.getId());
-            List<Comment> comments = postService.getComments(post.getId());
-
+            List<Comment> comments = postService.getComments(post.getId())
+                    .stream()
+                    .sorted(Comparator.comparing(Comment::getCreatedAt).reversed())
+                    .collect(Collectors.toList());
             PostDTO postDTO = new PostDTO(post, likeCount, comments, post.getCreatedAt());
             postDTOs.add(postDTO);
         }
