@@ -12,8 +12,10 @@ import dto.LocationDto;
 import com.group27.OnlyBuns.repository.UserFollowerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -151,6 +153,7 @@ public class PostService {
         postRepository.delete(post);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public List<Post> getPostsByUserId(Long userId) {
         return postRepository.findByUserId(userId);
     }
@@ -183,13 +186,13 @@ public class PostService {
         LocalDateTime threshold;
 
         switch (unit) {
-            case 'd': // Dani
+            case 'd':
                 threshold = now.minus(amount, ChronoUnit.DAYS);
                 break;
-            case 'm': // Meseci
+            case 'm':
                 threshold = now.minus(amount, ChronoUnit.MONTHS);
                 break;
-            case 'y': // Godine
+            case 'y':
                 threshold = now.minus(amount, ChronoUnit.YEARS);
                 break;
             default:

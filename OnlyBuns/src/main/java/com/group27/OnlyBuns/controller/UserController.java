@@ -66,11 +66,15 @@ public class UserController {
     public String logIn(@RequestBody User user, HttpServletRequest request) {
         String clientIp = request.getRemoteAddr(); // Dobijanje IP adrese
         if(rateLimiter.allowRequest(clientIp)) {
-            user = userService.getUserByUsername(user.getUsername());
-            System.out.println("Login2: " + user.getUsername() + user.getAddress() + user.getFirstName());
-            user.setLastLoginTime(LocalDateTime.now());
-            userService.updateUser(user);
-            return userService.logIn(user.getUsername(), user.getPassword());
+            String response = userService.logIn(user.getUsername(), user.getPassword());
+            if(response != null){
+                User loggedUser = userService.getUserByUsername(user.getUsername());
+                System.out.println("Login2: " + loggedUser.getUsername() + loggedUser.getAddress() + loggedUser.getFirstName());
+                loggedUser.setLastLoginTime(LocalDateTime.now());
+                System.out.println("Login3: " + loggedUser.getLastLoginTime());
+                userService.updateUser(loggedUser);
+            }
+            return response;
         }else{
             return "Previse puta je pokusana sifra";
         }
