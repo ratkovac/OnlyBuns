@@ -15,7 +15,7 @@ public class ScheduledTasks {
         this.notificationService = notificationService;
     }
 
-    @Scheduled(cron = "0 10 16 * * ?")
+    @Scheduled(cron = "0 44 20 * * ?")
     public void sendDailyInactiveUserNotifications() {
         notificationService.notifyInactiveUsers();
     }   
