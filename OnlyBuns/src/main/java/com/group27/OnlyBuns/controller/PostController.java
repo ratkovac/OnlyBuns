@@ -77,6 +77,7 @@ public class PostController {
     public List<PostDTO> getAllPosts() {
         List<PostDTO> postDTOs = new ArrayList<>();
         List<Post> posts = postService.getAllPosts();
+        posts.sort(Comparator.comparing(Post::getCreatedAt).reversed());
 
         for (Post post : posts) {
             long likeCount = postService.getLikeCount(post.getId());

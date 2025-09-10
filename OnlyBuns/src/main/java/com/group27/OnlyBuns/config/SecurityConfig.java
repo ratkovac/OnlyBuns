@@ -36,7 +36,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/users/login", "/users/register", "/users/verify/{userId}").permitAll()
                         .requestMatchers("/actuator/prometheus").permitAll()
-                        .requestMatchers("/images/**").permitAll() // dozvoljava pristup slikama
+                        .requestMatchers("/posts").permitAll()
+                        .requestMatchers("/users/getById/**").permitAll()
+                        .requestMatchers("/images/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
