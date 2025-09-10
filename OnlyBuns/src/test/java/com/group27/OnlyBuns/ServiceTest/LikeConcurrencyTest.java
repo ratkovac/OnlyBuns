@@ -26,20 +26,20 @@ public class LikeConcurrencyTest {
 
     @Test
     public void testConcurrentLikes() throws InterruptedException {
-        Long postId = 1L;
+        Long postId = 103L;
 
         long initialLikes = likeRepository.countByPostId(postId);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
         Runnable task1 = () -> {
-            postService.addLike(postId, 101L);
+            postService.addLike(postId, 11L);
         };
 
         Runnable task2 = () -> {
             try {
                 Thread.sleep(50);
-                postService.addLike(postId, 102L);
+                postService.addLike(postId, 12L);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -59,7 +59,7 @@ public class LikeConcurrencyTest {
 
         assertEquals(initialLikes + 2, finalLikes);
 
-        likeService.deleteLike(postId, 101L);
-        likeService.deleteLike(postId, 102L);
+        likeService.deleteLike(postId, 11L);
+        likeService.deleteLike(postId, 12L);
     }
 }

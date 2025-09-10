@@ -1,7 +1,10 @@
 package com.group27.OnlyBuns.service;
 
+import com.group27.OnlyBuns.model.Post;
 import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.model.UserWeeklyStatistic;
+import com.group27.OnlyBuns.repository.LikeRepository;
+import com.group27.OnlyBuns.repository.PostRepository;
 import com.group27.OnlyBuns.repository.UserRepository;
 import com.group27.OnlyBuns.repository.UserWeeklyStatisticRepository;
 import com.group27.OnlyBuns.service.EmailSenderService;
@@ -19,12 +22,16 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final EmailSenderService emailSenderService;
     private final UserWeeklyStatisticRepository userWeeklyStatisticRepository;
+    private final PostRepository postRepository;
+    private final LikeRepository likeRepository;
 
     @Autowired
-    public NotificationService(UserRepository userRepository, EmailSenderService emailSenderService, UserWeeklyStatisticRepository userWeeklyStatisticRepository) {
+    public NotificationService(UserRepository userRepository, EmailSenderService emailSenderService, UserWeeklyStatisticRepository userWeeklyStatisticRepository, PostRepository postRepository, LikeRepository likeRepository) {
         this.userRepository = userRepository;
         this.emailSenderService = emailSenderService;
         this.userWeeklyStatisticRepository = userWeeklyStatisticRepository;
+        this.postRepository = postRepository;
+        this.likeRepository = likeRepository;
     }
 
     @Transactional
@@ -32,9 +39,20 @@ public class NotificationService {
         LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
         List<User> inactiveUsers = userRepository.findInactiveUsersSince(sevenDaysAgo);
         for (User user : inactiveUsers) {
-            UserWeeklyStatistic userWeeklyStatistic = new UserWeeklyStatistic();
-            userWeeklyStatistic = userWeeklyStatisticRepository.getReferenceById(user.getId());
+            int postCount = (int) postRepository.countByCreatedAtAfter(LocalDateTime.now().minusDays(7));
+            int likes = 0;
+            for (Post post : postRepository.findByUserId(user.getId())) {
+                likes += likeRepository.countByPostIdAndCreatedAtAfter(
+                        post.getId(),
+                        LocalDateTime.now().minusDays(7)
+                );
+            }
+
+            UserWeeklyStatistic userWeeklyStatistic = new UserWeeklyStatistic(user.getId(), likes, postCount, 1);
+            //userWeeklyStatistic = userWeeklyStatisticRepository.getReferenceById(user.getId());
+            userWeeklyStatistic.setPosts(postCount);
             String emailBody = generateEmailContent(user, userWeeklyStatistic);
+            System.out.println(emailBody);
             emailSenderService.sendEmail(user.getEmail(), "OnlyBuns: Pogledaj nove objave!", emailBody);
         }
     }

@@ -35,6 +35,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/users/login", "/users/register", "/users/verify/{userId}").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
+                        .requestMatchers("/posts").permitAll()
+                        .requestMatchers("/users/getById/**").permitAll()
+                        .requestMatchers("/images/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/posts", "/posts/count", "/posts/createPost").permitAll()
                         .requestMatchers(HttpMethod.POST,"/posts/createPost").permitAll()
