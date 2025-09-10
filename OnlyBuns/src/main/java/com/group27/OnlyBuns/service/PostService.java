@@ -79,7 +79,7 @@ public class PostService {
         LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
         long commentCount = commentRepository.findByUserIdAndCreatedAtAfter(comment.getUserId(), oneHourAgo).size();
 
-        if (commentCount >= 60) {
+        if (commentCount >= 8) {
             throw new RuntimeException("You have exceeded the limit of 60 comments per hour.");
         }
 
@@ -152,7 +152,7 @@ public class PostService {
         likeRepository.deleteByPostId(postId);
         postRepository.delete(post);
     }
-    
+
     public List<Post> getPostsByUserId(Long userId) {
         return postRepository.findByUserId(userId);
     }
