@@ -3,6 +3,7 @@
     import com.group27.OnlyBuns.publisher.AdPostPublisher;
     import dto.AdPostDTO;
     import org.springframework.http.ResponseEntity;
+    import org.springframework.security.access.prepost.PreAuthorize;
     import org.springframework.web.bind.annotation.*;
 
     import java.time.LocalDateTime;
@@ -18,6 +19,7 @@
             this.adPostPublisher = adPostPublisher;
         }
 
+        @PreAuthorize("hasAuthority('ROLE_admin')")
         @PostMapping("/send")
         public ResponseEntity<String> sendAd(@RequestBody AdPostDTO adPostDTO) {
             adPostPublisher.sendAdPost(adPostDTO);
