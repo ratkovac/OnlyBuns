@@ -69,4 +69,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = true AND u.role = 'user' AND u.id <> 9999")
     long countActiveUsers();
+
+    @Query("SELECT u.username FROM User u")
+    List<String> findAllUsernames();
 }

@@ -1,5 +1,6 @@
 package com.group27.OnlyBuns.service;
 
+import com.google.common.hash.BloomFilter;
 import com.group27.OnlyBuns.model.User;
 import com.group27.OnlyBuns.model.UserFollower;
 import com.group27.OnlyBuns.repository.*;
@@ -25,6 +26,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.List;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,11 +51,17 @@ public class UserService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    private final BloomFilter<String> usernameBloomFilter;
+
+    private final Lock registrationLock = new ReentrantLock();
+
+
     @Autowired
-    public UserService(UserRepository userRepository, VerificationTokenRepository verificationTokenRepository, JwtUtil jwtUtil) {
+    public UserService(UserRepository userRepository, VerificationTokenRepository verificationTokenRepository, JwtUtil jwtUtil, BloomFilter<String> usernameBloomFilter) {
         this.userRepository = userRepository;
         this.verificationTokenRepository = verificationTokenRepository;
         this.jwtUtil = jwtUtil;
+        this.usernameBloomFilter = usernameBloomFilter;
     }
 
     // Kreiranje novog korisnika
@@ -128,34 +137,41 @@ public class UserService {
 
     @Transactional
     public User registerUser(User user) {
-        // Simulacija sporog pristupa za testiranje konflikata
+        registrationLock.lock();
         try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            // Simulacija sporog pristupa za testiranje konflikata
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                Thread.currentThread().interrupt();
+//            }
+
+            if (usernameBloomFilter.mightContain(user.getUsername())) {
+                if (getUserByUsername(user.getUsername()) != null) {
+                    throw new IllegalArgumentException("Korisnicko ime vec postoji");
+                }
+            }else{
+                System.out.println("Bloom filter: korisnicko ime ne postoji");
+            }
+            if (getUserByEmail(user.getEmail()) != null) {
+                throw new IllegalArgumentException("Email vec postoji");
+            }
+
+            Long maxId = userRepository.findMaxId();
+            if (maxId != null) {
+                System.out.println(maxId);
+                user.setId(maxId + 1);
+            } else {
+                user.setId(1L);
+                System.out.println("Ne nadje maxId");
+            }
+
+            user.setActive(false);
+            user.setRole("user");
+            return createUser(user);
+        } finally {
+            registrationLock.unlock();
         }
-
-        if (getUserByUsername(user.getUsername()) != null) {
-            throw new IllegalArgumentException("Korisnicko ime vec postoji");
-        }
-
-        if (getUserByEmail(user.getEmail()) != null) {
-            throw new IllegalArgumentException("Email vec postoji");
-        }
-
-        Long maxId = userRepository.findMaxId();
-        if (maxId != null) {
-            System.out.println(maxId);
-            user.setId(maxId + 1);
-        } else {
-            user.setId(1L);
-            System.out.println("Ne nadje maxId");
-        }
-
-
-        user.setActive(false);
-        user.setRole("user");
-        return createUser(user);
     }
 
     public Optional<User> getUserById(long id) {
@@ -301,7 +317,7 @@ public class UserService {
 
         long commented = allUsers.stream()
                 .filter(user -> commentRepository.countByUserId(user.getId()) > 0)
-                .filter(user -> postRepository.countByUserId(user.getId()) == 0) // samo komentarisali
+                .filter(user -> postRepository.countByUserId(user.getId()) == 0)
                 .count();
 
         long inactive = total - posted - commented;
