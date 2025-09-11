@@ -6,6 +6,8 @@ import com.group27.OnlyBuns.model.UserFollower;
 import com.group27.OnlyBuns.repository.*;
 import com.group27.OnlyBuns.model.VerificationToken;
 import com.group27.OnlyBuns.utils.JwtUtil;
+import dto.UserUpdateDTO;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.context.WebServerApplicationContext;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 import java.util.Objects;
@@ -177,6 +180,34 @@ public class UserService {
     public Optional<User> getUserById(long id) {
         return Optional.ofNullable(userRepository.findById(id));
     }
+
+    @Transactional
+    public User updateUserProfile(Long id, UserUpdateDTO userUpdateDTO) {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Korisnik sa ID-jem " + id + " nije pronađen."));
+
+        if (userUpdateDTO.getFirstName() != null && !userUpdateDTO.getFirstName().isEmpty()) {
+            existingUser.setFirstName(userUpdateDTO.getFirstName());
+        }
+
+        if (userUpdateDTO.getLastName() != null && !userUpdateDTO.getLastName().isEmpty()) {
+            existingUser.setLastName(userUpdateDTO.getLastName());
+        }
+
+        if (userUpdateDTO.getAddress() != null && !userUpdateDTO.getAddress().isEmpty()) {
+            existingUser.setAddress(userUpdateDTO.getAddress());
+        }
+
+
+        if (userUpdateDTO.getPassword() != null && !userUpdateDTO.getPassword().isEmpty()) {
+            existingUser.setPassword(userUpdateDTO.getPassword());
+        }
+
+        existingUser.setLastLoginTime(LocalDateTime.now());
+
+        return userRepository.save(existingUser);
+    }
+
 
     public String logIn(String username, String password) {
         User user = getUserByUsername(username);

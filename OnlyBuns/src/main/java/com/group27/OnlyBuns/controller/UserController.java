@@ -5,10 +5,13 @@ import com.group27.OnlyBuns.model.VerificationToken;
 import com.group27.OnlyBuns.service.EmailSenderService;
 import com.group27.OnlyBuns.service.UserService;
 import com.group27.OnlyBuns.utils.SimpleRateLimiter;
+import dto.UserUpdateDTO;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -207,6 +210,18 @@ public class UserController {
     public Map<String, Long> getActiveUsersCount() {
         long count = userService.countActiveUsers();
         return Collections.singletonMap("activeUsers", count);
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody UserUpdateDTO userUpdateDTO) {
+        try {
+            User updatedUser = userService.updateUserProfile(id, userUpdateDTO);
+            return ResponseEntity.ok(updatedUser);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 }
 
